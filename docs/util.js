@@ -88,16 +88,17 @@ export class Circle {
     }
 }
 export class Color {
-    constructor(r, g, b) {
+    constructor(r, g, b, a) {
         this.r = r;
         this.g = g;
         this.b = b;
+        this.a = a;
     }
     lerp(x, t) {
-        return new Color(lerp(this.r, x.r, t), lerp(this.g, x.g, t), lerp(this.b, x.b, t));
+        return new Color(lerp(this.r, x.r, t), lerp(this.g, x.g, t), lerp(this.b, x.b, t), lerp(this.a, x.a, t));
     }
     toColorString() {
-        return `rgb(${this.r},${this.g},${this.b})`;
+        return `rgba(${this.r},${this.g},${this.b},${this.a})`;
     }
 }
 /** OBB Intersection Algorithm

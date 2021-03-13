@@ -1,5 +1,5 @@
 import { Stage } from "./model.js";
-import { Vec2 } from "./util.js";
+import { Color, Vec2 } from "./util.js";
 
 export class Actor {
     isStatic: boolean = false;
@@ -8,7 +8,7 @@ export class Actor {
         public stage: Stage,
         public position: Vec2,
         public velocity: Vec2,
-        public colour: string,
+        public colour: Color,
         public radius: number
     ) { }
 
@@ -43,7 +43,7 @@ export class Actor {
     }
 
     draw(context: CanvasRenderingContext2D) {
-        context.fillStyle = this.colour;
+        context.fillStyle = this.colour.toColorString();
         // context.fillRect(this.x, this.y, this.radius,this.radius);
         context.beginPath();
         context.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI, false);

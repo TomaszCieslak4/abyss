@@ -1,39 +1,30 @@
 import { Actor } from "./actor.js";
 import { Player } from "./player.js";
-import { Vec2, OBB2D } from "./util.js";
+import { Vec2, OBB2D, Color } from "./util.js";
 function randint(n) { return Math.round(Math.random() * n); }
 function rand(n) { return Math.random() * n; }
 export class Stage {
     constructor(canvas) {
         this.canvas = canvas;
+        // all actors on this stage (monsters, player, boxes, ...)
+        this.actors = [];
+        // a special actor, the player
+        this.player = null;
         let box = new OBB2D(new Vec2(0, 0), new Vec2(10, 10), 0);
         let box2 = new OBB2D(new Vec2(10.1, 0), new Vec2(10, 10), 45);
         console.log(box.overlaps(box2));
-        this.actors = []; // all actors on this stage (monsters, player, boxes, ...)
-        this.player = null; // a special actor, the player
         // the logical width and height of the stage
         this.width = canvas.width;
         this.height = canvas.height;
         // Add the player to the center of the stage
-        let velocity = new Vec2(0, 0);
-        let radius = 20;
-        let colour = 'rgba(0,0,0,1)';
-        let position = new Vec2(Math.floor(this.width / 2), Math.floor(this.height / 2));
-        this.addPlayer(new Player(this, position, velocity, colour, radius));
+        this.addPlayer(new Player(this, new Vec2(Math.floor(this.width / 2), Math.floor(this.height / 2)), new Vec2(0, 0), new Color(0, 0, 0, 1), 20));
         // Add in some Balls
         let total = 100;
         while (total > 0) {
             let x = Math.floor((Math.random() * this.width));
             let y = Math.floor((Math.random() * this.height));
             if (this.getActor(x, y) === null) {
-                let velocity = new Vec2(rand(20), rand(20));
-                let red = randint(255), green = randint(255), blue = randint(255);
-                let radius = randint(20);
-                let alpha = Math.random();
-                let colour = 'rgba(' + red + ',' + green + ',' + blue + ',' + alpha + ')';
-                let position = new Vec2(x, y);
-                let b = new Actor(this, position, velocity, colour, radius);
-                this.addActor(b);
+                this.addActor(new Actor(this, new Vec2(x, y), new Vec2(rand(20), rand(20)), new Color(randint(255), randint(255), randint(255), Math.random()), randint(20)));
                 total--;
             }
         }

@@ -1,7 +1,7 @@
 import { Actor } from "./actor.js";
 export class Player extends Actor {
     draw(context) {
-        context.fillStyle = this.colour;
+        context.fillStyle = this.colour.toColorString();
         context.fillRect(this.position.x, this.position.y, this.radius, this.radius);
         /**
         context.beginPath();
