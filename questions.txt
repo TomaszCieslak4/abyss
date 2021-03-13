@@ -1,0 +1,10 @@
+Concepts:
+	- rest api
+	- sql api under node
+	- middleware
+	- Auth headers
+	- canvas
+
+https://medium.com/@robert.broeckelmann/how-to-submit-your-security-tokens-to-an-api-provider-pt-1-4a68df35843a
+1) middleware for authorization
+2) 

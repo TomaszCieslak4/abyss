@@ -1,0 +1,8 @@
+# http://VM_IP:8000/...
+# -------------------------------------------------------------------------
+# See setup.bash for complete re-installation
+# we already created a package.json file
+# so you can actually get away with executing 
+
+npm install
+nodejs ftd.js
