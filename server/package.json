@@ -1,0 +1,25 @@
+{
+  "name": "ftd-game",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ftd.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TomaszCieslak4/ftd-game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TomaszCieslak4/ftd-game/issues"
+  },
+  "homepage": "https://github.com/TomaszCieslak4/ftd-game#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "pg": "^8.5.1"
+  },
+  "devDependencies": {}
+}

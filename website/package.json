@@ -1,15 +1,15 @@
 {
-  "name": "ftd",
+  "name": "static_content",
   "version": "1.0.0",
   "description": "",
-  "main": "ftd.js",
+  "main": "controller.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "express": "^4.17.1",
-    "pg": "^8.5.1"
+  "devDependencies": {
+    "@types/jquery": "^3.5.5"
   }
 }
