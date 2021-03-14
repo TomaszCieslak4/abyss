@@ -1,28 +1,40 @@
-import { Stage } from './model.js';
-import { Vec2 } from './util.js';
-let stage = null;
+import { SceneManager } from './engine/sceneManager.js';
+import { GameScene } from './gameScene.js';
+import { Time } from './engine/time.js';
+import { Input } from './engine/input.js';
 let interval = 0;
 let credentials = { "username": "", "password": "" };
 let lastTime = 0;
 let lastFixedUpdate = 0;
-const FIXED_DELTA_TIME = 1 / 60;
+let canvas = document.getElementById('stage');
+const resizeCanvas = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+};
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 const setupGame = () => {
-    stage = new Stage(document.getElementById('stage'));
-    // https://javascript.info/keyboard-events
-    document.addEventListener('keydown', moveByKey);
+    SceneManager.init([GameScene]);
+    Input.init(["x", "y"], [
+        { axis: "y", key: "w", value: 1 },
+        { axis: "y", key: "s", value: -1 },
+        { axis: "x", key: "a", value: 1 },
+        { axis: "x", key: "d", value: -1 },
+    ]);
+    SceneManager.setCanvas(canvas);
+    SceneManager.setScene(0);
 };
 const update = (timestamp) => {
-    if (!stage)
-        return;
     // for (let index = 0; index < 100000000; index++) { }
-    let dt = (timestamp - lastTime) / 1000;
-    // console.log(dt);
-    while (timestamp - lastFixedUpdate >= FIXED_DELTA_TIME * 1000) {
-        stage.fixedUpdate();
-        lastFixedUpdate += FIXED_DELTA_TIME * 1000;
+    Time.deltaTime = (timestamp - lastTime) / 1000;
+    // console.log(Time.deltaTime);
+    Input.update();
+    while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
+        SceneManager.activeScene.fixedUpdate();
+        lastFixedUpdate += Time.fixedDeltaTime * 1000;
     }
-    stage.update(dt);
-    stage.draw();
+    SceneManager.activeScene.update();
+    SceneManager.activeScene.draw();
     lastTime = timestamp;
     interval = requestAnimationFrame(update);
 };
@@ -30,24 +42,6 @@ const startGame = () => {
     lastTime = performance.now();
     lastFixedUpdate = lastTime;
     interval = requestAnimationFrame(update);
-};
-const pauseGame = () => {
-    cancelAnimationFrame(interval);
-    interval = 0;
-};
-const moveByKey = (event) => {
-    let key = event.key;
-    let moveMap = {
-        'a': new Vec2(-5, 0),
-        's': new Vec2(0, 5),
-        'd': new Vec2(5, 0),
-        'w': new Vec2(0, -5)
-    };
-    if (key in moveMap) {
-        if (!stage || !stage.player)
-            return;
-        stage.player.velocity = moveMap[key];
-    }
 };
 const login = () => {
     credentials = {

@@ -1,33 +1,49 @@
-import { Stage } from './model.js';
-import { Vec2 } from './util.js';
+import { SceneManager } from './engine/sceneManager.js';
+import { GameScene } from './gameScene.js';
+import { Time } from './engine/time.js';
+import { Input } from './engine/input.js';
 
-let stage: Stage | null = null;
 let interval: number = 0;
 let credentials = { "username": "", "password": "" };
 let lastTime: number = 0;
 let lastFixedUpdate: number = 0;
-const FIXED_DELTA_TIME = 1 / 60;
+let canvas = document.getElementById('stage') as HTMLCanvasElement;
+
+const resizeCanvas = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 const setupGame = () => {
-    stage = new Stage(document.getElementById('stage') as HTMLCanvasElement);
+    SceneManager.init([GameScene])
+    Input.init(["x", "y"], [
+        { axis: "y", key: "w", value: 1 },
+        { axis: "y", key: "s", value: -1 },
+        { axis: "x", key: "a", value: 1 },
+        { axis: "x", key: "d", value: -1 },
+    ]);
 
-    // https://javascript.info/keyboard-events
-    document.addEventListener('keydown', moveByKey);
+    SceneManager.setCanvas(canvas);
+    SceneManager.setScene(0);
 };
 
 const update = (timestamp: number) => {
-    if (!stage) return;
 
     // for (let index = 0; index < 100000000; index++) { }
-    let dt = (timestamp - lastTime) / 1000;
-    // console.log(dt);
+    Time.deltaTime = (timestamp - lastTime) / 1000;
+    // console.log(Time.deltaTime);
+    Input.update();
 
-    while (timestamp - lastFixedUpdate >= FIXED_DELTA_TIME * 1000) {
-        stage.fixedUpdate();
-        lastFixedUpdate += FIXED_DELTA_TIME * 1000;
+    while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
+        SceneManager.activeScene.fixedUpdate();
+        lastFixedUpdate += Time.fixedDeltaTime * 1000;
     }
-    stage.update(dt);
-    stage.draw();
+
+    SceneManager.activeScene.update();
+    SceneManager.activeScene.draw();
     lastTime = timestamp;
     interval = requestAnimationFrame(update);
 };
@@ -36,25 +52,6 @@ const startGame = () => {
     lastTime = performance.now();
     lastFixedUpdate = lastTime;
     interval = requestAnimationFrame(update);
-};
-
-const pauseGame = () => {
-    cancelAnimationFrame(interval);
-    interval = 0;
-};
-
-const moveByKey = (event: KeyboardEvent) => {
-    let key = event.key;
-    let moveMap = {
-        'a': new Vec2(-5, 0),
-        's': new Vec2(0, 5),
-        'd': new Vec2(5, 0),
-        'w': new Vec2(0, -5)
-    };
-    if (key in moveMap) {
-        if (!stage || !stage.player) return;
-        stage.player.velocity = moveMap[key as 'a'];
-    }
 };
 
 const login = () => {

@@ -1,2 +1,22 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 #ui_login { display:block; }
-#ui_play { display:none; }
+#ui_play { 
+    display:none;     
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    height: 100vh;
+}
+
+canvas{
+    width: 100vw;
+    height: 100vh;
+    border: none;
+}
