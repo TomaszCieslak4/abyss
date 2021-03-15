@@ -25,6 +25,8 @@ export class Vec2 {
     i_mul_s(x) { this.x *= x; this.y *= x; return this; }
     // MISC
     dot(x) { return this.x * x.x + this.y * x.y; }
+    prep() { return new Vec2(-this.y, this.x); }
+    i_prep() { let x = this.x; let y = this.y; this.x = -y; this.y = x; return this; }
     sqr_dist(x) { let dx = this.x - x.x; let dy = this.y - x.y; return dx * dx + dy * dy; }
     sqr_magnitude() { return this.x * this.x + this.y * this.y; }
     magnitude() { return Math.sqrt(this.x * this.x + this.y * this.y); }

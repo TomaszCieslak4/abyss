@@ -27,9 +27,9 @@ export class GameScene extends Scene {
         EntityManager.addComponent(player, RectCollider);
         EntityManager.addComponent(player, Sprite);
         EntityManager.addComponent(player, Player);
-        EntityManager.setComponentData(player, new Transform(new Vec2(200, 200), Math.PI / 4, new Vec2(50, 50)));
+        EntityManager.setComponentData(player, new Transform(new Vec2(200, 200), 0, new Vec2(50, 50)));
         EntityManager.setComponentData(player, new Player(1000));
-        EntityManager.setComponentData(player, new RigidBody(Vec2.zero(), Math.PI / 4));
+        EntityManager.setComponentData(player, new RigidBody(Vec2.zero(), 0));
 
         // Add in some Balls
         let total = 4;
@@ -39,7 +39,7 @@ export class GameScene extends Scene {
 
             let bullet = EntityManager.createEntity();
             EntityManager.addComponent(bullet, Transform);
-            EntityManager.addComponent(bullet, RigidBody);
+            // EntityManager.addComponent(bullet, RigidBody);
             EntityManager.addComponent(bullet, ColorData);
             EntityManager.addComponent(bullet, RectCollider);
             EntityManager.setComponentData(bullet, new Transform(new Vec2(x, y), 0, new Vec2(20, 20)));

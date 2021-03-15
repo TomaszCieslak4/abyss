@@ -24,7 +24,8 @@ export class PlayerJob extends IJob {
         );
 
         let v = transforms[index].position.sub(Input.mousePos);
-        transforms[index].rotation = Math.atan2(v.y, v.x);
+        let rotation = (Math.atan2(v.y, v.x) - transforms[index].rotation) % (2 * Math.PI);
+        rigidBodies[index].torque = rotation > Math.PI ? Math.PI - rotation : rotation / Time.fixedDeltaTime;
 
         if (Input.getButton("fire")) {
             console.log("DOWN");
