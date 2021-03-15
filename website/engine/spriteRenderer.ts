@@ -1,33 +1,49 @@
-import { Color } from "./color.js";
+import { IComponentData } from "./component.js";
+import { IComponentSystem } from "./ecs/componentSystem.js";
+import { IJob, Job } from "./ecs/job.js";
 import { SceneManager } from "./sceneManager.js";
-import { Script } from "./script.js";
 import { Transform } from "./transform.js";
 
-export class SpriteRenderer extends Script {
-    sprite?: HTMLImageElement;
-    transform!: Transform;
+export class Sprite extends IComponentData {
+    constructor(
+        public sprite: HTMLImageElement = new Image()
+    ) { super() }
+}
 
-    start() {
-        this.transform = this.gameObject.getComponent(Transform)!;
-    }
+export class SpriteRendererJob extends IJob {
 
-    draw() {
-        if (!this.sprite || !this.sprite.complete || this.sprite.naturalWidth === 0) {
+    @Job(Sprite, Transform)
+    execute(index: number, sprites: Sprite[], transforms: Transform[]) {
+        SceneManager.context.save();
+        SceneManager.context.translate(transforms[index].position.x, transforms[index].position.y);
+        SceneManager.context.rotate(transforms[index].rotation);
+
+        if (!sprites[index].sprite.complete || sprites[index].sprite.naturalWidth === 0) {
             SceneManager.context.fillStyle = "magenta";
             SceneManager.context.fillRect(
-                this.transform.position.x - this.transform.scale.x,
-                this.transform.position.y - this.transform.scale.y,
-                this.transform.scale.x,
-                this.transform.scale.y
+                -transforms[index].scale.x,
+                -transforms[index].scale.y,
+                transforms[index].scale.x * 2,
+                transforms[index].scale.y * 2
             );
+            SceneManager.context.restore();
             return;
         }
 
-        SceneManager.context.drawImage(this.sprite,
-            this.transform.position.x - this.transform.scale.x,
-            this.transform.position.y - this.transform.scale.y,
-            this.transform.scale.x,
-            this.transform.scale.y
+        SceneManager.context.drawImage(
+            sprites[index].sprite,
+            -transforms[index].scale.x,
+            -transforms[index].scale.y,
+            transforms[index].scale.x * 2,
+            transforms[index].scale.y * 2
         );
+        SceneManager.context.restore();
+    }
+}
+
+export class SpriteRendererSystem extends IComponentSystem {
+    onDraw() {
+        let job = new SpriteRendererJob();
+        job.schedule();
     }
 }

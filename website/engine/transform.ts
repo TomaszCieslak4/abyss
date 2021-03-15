@@ -1,8 +1,10 @@
-import { Script } from "./script.js";
+import { IComponentData } from "./component.js";
 import { Vec2 } from "./vector.js";
 
-export class Transform extends Script {
-    public position: Vec2 = Vec2.zero();
-    public rotation: Vec2 = Vec2.one();
-    public scale: Vec2 = Vec2.one();
+export class Transform extends IComponentData {
+    constructor(
+        public position: Vec2 = Vec2.zero(),
+        public rotation: number = 0,
+        public scale: Vec2 = Vec2.one()
+    ) { super(); }
 }

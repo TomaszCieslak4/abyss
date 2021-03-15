@@ -1,6 +1,11 @@
+import { SceneManager } from "./sceneManager.js";
+import { Vec2 } from "./vector.js";
+
 export class Input {
     private static buttonMap: Map<string, AxisValue[]> = new Map();
     private static nameMap: Map<string, Axis> = new Map();
+    private static immediateMousePos: Vec2 = Vec2.one();
+    static mousePos: Vec2 = Vec2.one();
 
     static init(mappings: string[], buttons: Button[]) {
         Input.buttonMap = new Map();
@@ -17,6 +22,24 @@ export class Input {
             });
         }
 
+        Input.nameMap.set("mousePosY", {
+            name: "mousePosY",
+            isDown: false,
+            isUp: false,
+            isPressed: false,
+            value: 0,
+            immediateValue: 0
+        });
+
+        Input.nameMap.set("mousePosX", {
+            name: "mousePosX",
+            isDown: false,
+            isUp: false,
+            isPressed: false,
+            value: 0,
+            immediateValue: 0
+        });
+
         for (const button of buttons) {
             let buttons = Input.buttonMap.get(button.key);
 
@@ -29,23 +52,36 @@ export class Input {
             if (axis) buttons.push({ axis: axis, value: button.value });
         }
 
-        document.addEventListener('keydown', (evt) => {
-            let mappings = Input.buttonMap.get(evt.key);
-            if (!mappings) return;
-
-            for (const mapping of mappings) {
-                mapping.axis.immediateValue = mapping.value;
-            }
+        document.addEventListener("keydown", (evt) => {
+            Input.setMappingValue(evt.key);
         });
 
-        document.addEventListener('keyup', (evt) => {
-            let mappings = Input.buttonMap.get(evt.key);
-            if (!mappings) return;
-
-            for (const mapping of mappings) {
-                mapping.axis.immediateValue = 0;
-            }
+        document.addEventListener("keyup", (evt) => {
+            Input.setMappingValue(evt.key, 0);
         });
+
+        document.addEventListener("mousemove", (evt) => {
+            Input.immediateMousePos.set_s(evt.pageX, evt.pageY);
+            Input.nameMap.get("mousePosX")!.immediateValue = evt.pageX * 2 / SceneManager.width - 1;
+            Input.nameMap.get("mousePosY")!.immediateValue = evt.pageY * 2 / SceneManager.height - 1;
+        });
+
+        document.addEventListener("mousedown", (evt) => {
+            Input.setMappingValue(`mouse${evt.button}`);
+        });
+
+        document.addEventListener("mouseup", (evt) => {
+            Input.setMappingValue(`mouse${evt.button}`, 0);
+        });
+    }
+
+    private static setMappingValue(name: string, value?: number) {
+        let mappings = Input.buttonMap.get(name);
+        if (!mappings) return;
+
+        for (const mapping of mappings) {
+            mapping.axis.immediateValue = value ?? mapping.value;
+        }
     }
 
     static getAxis(name: string) {
@@ -71,6 +107,8 @@ export class Input {
             axis.isPressed = axis.value === 1 && axis.immediateValue === 1;
             axis.value = axis.immediateValue;
         }
+
+        Input.mousePos.set(Input.immediateMousePos);
     }
 }
 

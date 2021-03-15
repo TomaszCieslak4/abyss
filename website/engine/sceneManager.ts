@@ -1,8 +1,8 @@
 import { Scene } from "./scene.js";
-import { constructorof } from "./util.js";
+import { Type } from "./util.js";
 
 export class SceneManager {
-    private static scenes: constructorof<Scene>[] = []
+    private static scenes: Type<Scene>[] = []
     private static canvas: HTMLCanvasElement;
     static activeScene: Scene;
     static width: number;
@@ -16,7 +16,7 @@ export class SceneManager {
         SceneManager.context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
     }
 
-    static init(scenes: constructorof<Scene>[]) {
+    static init(scenes: Type<Scene>[]) {
         SceneManager.scenes = scenes;
     }
 

@@ -1,20 +1,37 @@
-import { Color } from "./engine/color.js";
-import { GameObject } from "./engine/gameObject.js";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { IComponentData } from "./engine/component.js";
+import { IComponentSystem } from "./engine/ecs/componentSystem.js";
+import { IJob, Job } from "./engine/ecs/job.js";
 import { Input } from "./engine/input.js";
 import { RigidBody } from "./engine/rigidbody.js";
-import { SpriteRenderer } from "./engine/spriteRenderer.js";
-export class Player extends GameObject {
-    constructor() {
+import { Transform } from "./engine/transform.js";
+export class Player extends IComponentData {
+    constructor(speed = 100) {
         super();
-        this.color = new Color(0, 255, 0);
-        this.speed = 200;
-        this.rigidBody = this.addComponent(RigidBody);
-        let renderer = this.addComponent(SpriteRenderer);
-        renderer.sprite = new Image();
-        renderer.sprite.src = "test.png";
+        this.speed = speed;
     }
-    update() {
-        super.update();
-        this.rigidBody.velocity.set_s(Input.getAxis("x") * -this.speed, Input.getAxis("y") * -this.speed);
+}
+export class PlayerJob extends IJob {
+    execute(index, players, rigidBodies, transforms) {
+        rigidBodies[index].velocity.set_s(Input.getAxis("x") * -players[index].speed, Input.getAxis("y") * -players[index].speed);
+        let v = transforms[index].position.sub(Input.mousePos);
+        transforms[index].rotation = Math.atan2(v.y, v.x);
+        if (Input.getButton("fire")) {
+            console.log("DOWN");
+        }
+    }
+}
+__decorate([
+    Job(Player, RigidBody, Transform)
+], PlayerJob.prototype, "execute", null);
+export class PlayerSystem extends IComponentSystem {
+    onUpdate() {
+        let job = new PlayerJob();
+        job.schedule();
     }
 }

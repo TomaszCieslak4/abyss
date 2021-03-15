@@ -2,6 +2,7 @@ import { SceneManager } from './engine/sceneManager.js';
 import { GameScene } from './gameScene.js';
 import { Time } from './engine/time.js';
 import { Input } from './engine/input.js';
+import { EntityManager } from './engine/ecs/entity.js';
 
 let interval: number = 0;
 let credentials = { "username": "", "password": "" };
@@ -19,11 +20,12 @@ resizeCanvas();
 
 const setupGame = () => {
     SceneManager.init([GameScene])
-    Input.init(["x", "y"], [
+    Input.init(["x", "y", "fire"], [
         { axis: "y", key: "w", value: 1 },
         { axis: "y", key: "s", value: -1 },
         { axis: "x", key: "a", value: 1 },
         { axis: "x", key: "d", value: -1 },
+        { axis: "fire", key: "mouse0", value: 1 }
     ]);
 
     SceneManager.setCanvas(canvas);
@@ -38,12 +40,12 @@ const update = (timestamp: number) => {
     Input.update();
 
     while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
-        SceneManager.activeScene.fixedUpdate();
+        EntityManager.fixedUpdate();
         lastFixedUpdate += Time.fixedDeltaTime * 1000;
     }
 
-    SceneManager.activeScene.update();
-    SceneManager.activeScene.draw();
+    EntityManager.update();
+    EntityManager.draw();
     lastTime = timestamp;
     interval = requestAnimationFrame(update);
 };

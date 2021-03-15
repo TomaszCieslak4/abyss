@@ -1,25 +1,40 @@
-import { Color } from "./engine/color.js";
-import { GameObject } from "./engine/gameObject.js";
+import { timers } from "jquery";
+import { IComponentData } from "./engine/component.js";
+import { IComponentSystem } from "./engine/ecs/componentSystem.js";
+import { IJob, Job } from "./engine/ecs/job.js";
 import { Input } from "./engine/input.js";
 import { RigidBody } from "./engine/rigidbody.js";
-import { SpriteRenderer } from "./engine/spriteRenderer.js";
+import { SceneManager } from "./engine/sceneManager.js";
+import { Time } from "./engine/time.js";
+import { Transform } from "./engine/transform.js";
 
-export class Player extends GameObject {
-    color: Color = new Color(0, 255, 0);
-    speed: number = 200;
-    rigidBody: RigidBody;
+export class Player extends IComponentData {
+    constructor(
+        public speed: number = 100
+    ) { super() }
+}
 
-    constructor() {
-        super();
-        this.rigidBody = this.addComponent(RigidBody);
-        let renderer = this.addComponent(SpriteRenderer);
-        renderer.sprite = new Image();
-        renderer.sprite.src = "test.png";
+export class PlayerJob extends IJob {
+
+    @Job(Player, RigidBody, Transform)
+    execute(index: number, players: Player[], rigidBodies: RigidBody[], transforms: Transform[]) {
+        rigidBodies[index].velocity.set_s(
+            Input.getAxis("x") * -players[index].speed,
+            Input.getAxis("y") * -players[index].speed
+        );
+
+        let v = transforms[index].position.sub(Input.mousePos);
+        transforms[index].rotation = Math.atan2(v.y, v.x);
+
+        if (Input.getButton("fire")) {
+            console.log("DOWN");
+        }
     }
+}
 
-    update() {
-        super.update();
-
-        this.rigidBody.velocity.set_s(Input.getAxis("x") * -this.speed, Input.getAxis("y") * -this.speed);
+export class PlayerSystem extends IComponentSystem {
+    onUpdate() {
+        let job = new PlayerJob();
+        job.schedule();
     }
 }

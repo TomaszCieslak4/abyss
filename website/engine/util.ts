@@ -8,4 +8,4 @@ export function easeOut(t: number) { return 2.0 * t * (1.0 - t) + 0.5; }
 export function parametricBlend(t: number) { let sqt = t * t; return sqt / (2.0 * (sqt - t) + 1.0); }
 export function inOutQuadBlend(t: number) { if (t <= 0.5) return 2.0 * t * t; t -= 0.5; return 2.0 * t * (1.0 - t) + 0.5; }
 
-export interface constructorof<T> { new(...args: any[]): T; }
+export interface Type<T> { new(...args: any[]): T; }
