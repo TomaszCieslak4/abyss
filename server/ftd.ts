@@ -6,7 +6,7 @@
 // const { Pool } = require("pg");
 import express from "express";
 import { Pool } from "pg";
-var port = 8000;
+var port = 25566; // TODO: Change to 8000
 var app = express();
 
 const pool = new Pool({
@@ -84,7 +84,7 @@ app.post('/api/auth/test', function (req, res) {
 
 app.use('/', express.static('../docs'));
 
-app.listen(port, function () {
+app.listen(port, "localhost", function () {
 	console.log('Example app listening on port ' + port);
 });
 

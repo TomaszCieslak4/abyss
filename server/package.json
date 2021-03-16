@@ -5,7 +5,7 @@
   "main": "ftd.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc --watch & node ftd.js"
+    "start": "tsc && node ftd.js"
   },
   "repository": {
     "type": "git",

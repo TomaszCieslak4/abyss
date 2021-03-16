@@ -10,7 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // const { Pool } = require("pg");
 const express_1 = __importDefault(require("express"));
 const pg_1 = require("pg");
-var port = 8000;
+var port = 25566; // TODO: Change to 8000
 var app = express_1.default();
 const pool = new pg_1.Pool({
     user: 'webdbuser',
@@ -77,6 +77,6 @@ app.post('/api/auth/test', function (req, res) {
     res.json({ "message": "got to /api/auth/test" });
 });
 app.use('/', express_1.default.static('../docs'));
-app.listen(port, function () {
+app.listen(port, "localhost", function () {
     console.log('Example app listening on port ' + port);
 });

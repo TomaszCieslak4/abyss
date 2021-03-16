@@ -1,17 +1,23 @@
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-import { Component, IComponentData } from "./engine/ecs/component.js";
-let Bullet = class Bullet extends IComponentData {
-    constructor(owner) {
-        super();
-        this.owner = owner;
+import { GameObject } from "./gameObject.js";
+import { Vec2 } from "./util/vector.js";
+export class Bullet extends GameObject {
+    constructor() {
+        super(...arguments);
+        this.size = new Vec2(20, 20);
+        this.sprite = new Image();
     }
-};
-Bullet = __decorate([
-    Component
-], Bullet);
-export { Bullet };
+    draw(context) {
+        context.save();
+        context.translate(this.position.x, this.position.y);
+        if (!this.sprite.complete || this.sprite.naturalWidth === 0) {
+            context.fillStyle = "magenta";
+            context.fillRect(-this.size.x, -this.size.y, this.size.x, this.size.y);
+            context.restore();
+            return;
+        }
+        context.drawImage(this.sprite, -this.size.x, -this.size.y, this.size.x, this.size.y);
+        context.restore();
+    }
+    onCollisionEnter(other) {
+    }
+}
