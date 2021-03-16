@@ -13,8 +13,14 @@ export class Camera {
         this.size.set_s(this.canvas.width, this.canvas.height);
         this.context.clearRect(0, 0, this.size.x, this.size.y);
         for (const obj of SceneManager.activeScene.gameObjects) {
-            obj.draw(this.context);
+            obj.draw(this.context, this);
         }
+    }
+    toViewport(x) {
+        return x.sub(this.position);
+    }
+    toWorld(x) {
+        return x.add(this.position);
     }
 }
 Camera.main = new Camera();

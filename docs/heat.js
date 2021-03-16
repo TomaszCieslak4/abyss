@@ -6,10 +6,9 @@ export class Bullet extends GameObject {
         this.size = new Vec2(20, 20);
         this.sprite = new Image();
     }
-    draw(context, cam) {
+    draw(context) {
         context.save();
-        let pos = cam.toViewport(this.position);
-        context.translate(pos.x, pos.y);
+        context.translate(this.position.x, this.position.y);
         if (!this.sprite.complete || this.sprite.naturalWidth === 0) {
             context.fillStyle = "magenta";
             context.fillRect(-this.size.x, -this.size.y, this.size.x, this.size.y);

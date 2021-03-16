@@ -1,4 +1,5 @@
 import { Bullet } from "./bullet.js";
+import { Camera } from "./camera.js";
 import { GameObject } from "./gameObject.js";
 import { Input } from "./input.js";
 import { SceneManager } from "./scene/sceneManager.js";
@@ -15,6 +16,7 @@ export class Player extends GameObject {
 
     update(dt: number) {
         this.velocity.set_s(Input.getAxis("x") * -500, Input.getAxis("y") * -500);
+        Camera.main.position = Vec2.lerp(Camera.main.position, this.position.sub(Camera.main.size.div_s(2)).add(this.size.div_s(2)), 0.02);
 
         if (Input.getButton("fire")) {
             console.log("DOWN");
@@ -24,9 +26,10 @@ export class Player extends GameObject {
         super.update(dt);
     }
 
-    draw(context: CanvasRenderingContext2D) {
+    draw(context: CanvasRenderingContext2D, cam: Camera) {
         context.save();
-        context.translate(this.position.x, this.position.y);
+        let pos = cam.toViewport(this.position);
+        context.translate(pos.x, pos.y);
 
         if (!this.sprite.complete || this.sprite.naturalWidth === 0) {
             context.fillStyle = "magenta";

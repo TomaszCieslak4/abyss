@@ -22,7 +22,15 @@ export class Camera {
         this.context.clearRect(0, 0, this.size.x, this.size.y);
 
         for (const obj of SceneManager.activeScene.gameObjects) {
-            obj.draw(this.context);
+            obj.draw(this.context, this);
         }
+    }
+
+    toViewport(x: Vec2) {
+        return x.sub(this.position);
+    }
+
+    toWorld(x: Vec2) {
+        return x.add(this.position);
     }
 }

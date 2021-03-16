@@ -37,6 +37,7 @@ export class Vec2 {
     clamp(min, max) { return new Vec2(Math.min(Math.max(this.x, min.x), max.x), Math.min(Math.max(this.y, min.y), max.y)); }
     i_clamp(min, max) { this.x = Math.min(Math.max(this.x, min.x), max.x); this.y = Math.min(Math.max(this.y, min.y), max.y); return this; }
     copy() { return new Vec2(this.x, this.y); }
+    static lerp(start, end, t) { return start.add(end.sub(start).i_mul_s(t)); }
     static zero() { return new Vec2(0, 0); }
     static one() { return new Vec2(1, 1); }
 }

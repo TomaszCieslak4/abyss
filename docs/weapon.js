@@ -1,4 +1,5 @@
 import { Bullet } from "./bullet.js";
+import { Camera } from "./camera.js";
 import { GameObject } from "./gameObject.js";
 import { Input } from "./input.js";
 import { Vec2 } from "./util/vector.js";
@@ -19,7 +20,7 @@ export class Weapon extends GameObject {
         if (this.timeToReload >= this.reloadTime) {
             this.timeToReload = 0;
             let bullet = new Bullet();
-            bullet.velocity = this.position.sub(Input.mousePos).normalize().i_mul_s(-800);
+            bullet.velocity = this.position.sub(Camera.main.toWorld(Input.mousePos)).normalize().i_mul_s(-800);
             bullet.position.set(this.position.add(bullet.size.div_s(2)).sub(this.size.div_s(2)));
         }
     }

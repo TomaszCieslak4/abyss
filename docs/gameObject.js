@@ -10,7 +10,7 @@ export class GameObject {
     update(dt) {
         this.position.i_add(this.velocity.mul_s(dt));
     }
-    draw(context) {
+    draw(context, cam) {
     }
     onCollisionEnter(other) {
     }

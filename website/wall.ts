@@ -1,9 +1,17 @@
+import { Bullet } from "./bullet.js";
 import { Camera } from "./camera.js";
 import { GameObject } from "./gameObject.js";
+import { Input } from "./input.js";
+import { SceneManager } from "./scene/sceneManager.js";
 import { Vec2 } from "./util/vector.js";
+import { Weapon } from "./weapon.js";
 
-export class Bullet extends GameObject {
-    size: Vec2 = new Vec2(20, 20);
+export class Wall extends GameObject {
+    constructor(
+        public position: Vec2 = new Vec2(200, 200),
+        public size: Vec2 = new Vec2(50, 50)
+    ) { super(); }
+
     sprite: HTMLImageElement = new Image();
 
     draw(context: CanvasRenderingContext2D, cam: Camera) {
@@ -32,9 +40,5 @@ export class Bullet extends GameObject {
             this.size.y,
         );
         context.restore();
-    }
-
-    onCollisionEnter(other: GameObject) {
-
     }
 }

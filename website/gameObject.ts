@@ -1,3 +1,4 @@
+import { Camera } from "./camera.js";
 import { SceneManager } from "./scene/sceneManager.js";
 import { Vec2 } from "./util/vector.js";
 
@@ -14,7 +15,7 @@ export class GameObject {
         this.position.i_add(this.velocity.mul_s(dt));
     }
 
-    draw(context: CanvasRenderingContext2D) {
+    draw(context: CanvasRenderingContext2D, cam: Camera) {
 
     }
 

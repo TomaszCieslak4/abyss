@@ -2,23 +2,14 @@ import { Camera } from "./camera.js";
 import { GameObject } from "./gameObject.js";
 import { Input } from "./input.js";
 import { Vec2 } from "./util/vector.js";
-import { Weapon } from "./weapon.js";
-export class Player extends GameObject {
+export class MouseBullet extends GameObject {
     constructor() {
         super(...arguments);
-        this.size = new Vec2(50, 50);
-        this.position = new Vec2(200, 200);
-        this.velocity = new Vec2(200, 200);
+        this.size = new Vec2(20, 20);
         this.sprite = new Image();
-        this.weapon = new Weapon(this);
     }
     update(dt) {
-        this.velocity.set_s(Input.getAxis("x") * -500, Input.getAxis("y") * -500);
-        Camera.main.position = Vec2.lerp(Camera.main.position, this.position.sub(Camera.main.size.div_s(2)).add(this.size.div_s(2)), 0.02);
-        if (Input.getButton("fire")) {
-            console.log("DOWN");
-            this.weapon.shoot();
-        }
+        this.velocity = Vec2.lerp(this.velocity, this.position.sub(Camera.main.toWorld(Input.mousePos)).normalize().i_mul_s(-800), 0.2);
         super.update(dt);
     }
     draw(context, cam) {
@@ -33,5 +24,7 @@ export class Player extends GameObject {
         }
         context.drawImage(this.sprite, -this.size.x, -this.size.y, this.size.x, this.size.y);
         context.restore();
+    }
+    onCollisionEnter(other) {
     }
 }
