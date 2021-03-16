@@ -1,25 +1,28 @@
-import { IComponentData } from "./component.js";
-import { IComponentSystem } from "./ecs/componentSystem.js";
-import { IJob, Job } from "./ecs/job.js";
-import { RectCollider } from "./rectCollider.js";
-import { SceneManager } from "./sceneManager.js";
-import { Transform } from "./transform.js";
+import { Component, IComponentData } from "../component.js";
+import { IComponentSystem } from "../componentSystem.js";
+import { IJobForEach, JobForEach } from "../job.js";
 
+// Components
+import { Transform } from "./transform.js";
+import { RectCollider } from "./rectCollider.js";
+import { SceneManager } from "../../sceneManager.js";
+
+@Component
 export class Sprite extends IComponentData {
     constructor(
         public sprite: HTMLImageElement = new Image()
     ) { super() }
 }
 
-export class SpriteRendererJob extends IJob {
+@JobForEach(Sprite, Transform, RectCollider)
+export class SpriteRendererJob extends IJobForEach {
 
-    @Job(Sprite, Transform, RectCollider)
-    execute(index: number, sprites: Sprite[], transforms: Transform[], colliders: RectCollider[]) {
+    execute(sprite: Sprite, transform: Transform, collider: RectCollider) {
         SceneManager.context.save();
-        SceneManager.context.translate(transforms[index].position.x, transforms[index].position.y);
-        SceneManager.context.rotate(transforms[index].rotation);
+        SceneManager.context.translate(transform.position.x, transform.position.y);
+        SceneManager.context.rotate(transform.rotation);
 
-        if (!sprites[index].sprite.complete || sprites[index].sprite.naturalWidth === 0) {
+        if (!sprite.sprite.complete || sprite.sprite.naturalWidth === 0) {
             SceneManager.context.fillStyle = "magenta";
 
             // SceneManager.context.beginPath();
@@ -32,29 +35,29 @@ export class SpriteRendererJob extends IJob {
             // SceneManager.context.restore();
 
             SceneManager.context.fillRect(
-                -transforms[index].scale.x,
-                -transforms[index].scale.y,
-                transforms[index].scale.x * 2,
-                transforms[index].scale.y * 2
+                -transform.scale.x,
+                -transform.scale.y,
+                transform.scale.x * 2,
+                transform.scale.y * 2
             );
             SceneManager.context.restore();
             return;
         }
 
         SceneManager.context.drawImage(
-            sprites[index].sprite,
-            -transforms[index].scale.x,
-            -transforms[index].scale.y,
-            transforms[index].scale.x * 2,
-            transforms[index].scale.y * 2
+            sprite.sprite,
+            -transform.scale.x,
+            -transform.scale.y,
+            transform.scale.x * 2,
+            transform.scale.y * 2
         );
         SceneManager.context.restore();
     }
 }
 
 export class SpriteRendererSystem extends IComponentSystem {
-    onDraw() {
+    onUpdate() {
         let job = new SpriteRendererJob();
-        job.schedule();
+        job.run();
     }
 }

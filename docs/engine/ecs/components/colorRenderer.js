@@ -4,13 +4,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { Color } from "./color.js";
-import { Component, IComponentData } from "./ecs/component.js";
-import { IComponentSystem } from "./ecs/componentSystem.js";
-import { IJobForEach, JobForEach } from "./ecs/job.js";
-import { RectCollider } from "./rectCollider.js";
-import { SceneManager } from "./sceneManager.js";
+import { Component, IComponentData } from "../component.js";
+import { IComponentSystem } from "../componentSystem.js";
+import { IJobForEach, JobForEach } from "../job.js";
+import { Color } from "../../math/color.js";
+// Components
 import { Transform } from "./transform.js";
+import { RectCollider } from "./rectCollider.js";
+import { SceneManager } from "../../sceneManager.js";
 let ColorData = class ColorData extends IComponentData {
     constructor(color = new Color()) {
         super();
@@ -44,7 +45,7 @@ ColorRendererJob = __decorate([
 ], ColorRendererJob);
 export { ColorRendererJob };
 export class ColorRendererSystem extends IComponentSystem {
-    onDraw() {
+    onUpdate() {
         let job = new ColorRendererJob();
         job.scheduleParallel();
     }

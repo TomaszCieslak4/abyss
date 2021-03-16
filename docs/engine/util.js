@@ -1,3 +1,4 @@
+export function floorDiv(a, b) { return Math.floor(a / b); }
 export function random() { return ((Math.random() - 0.5) * 2); }
 export function lerp(min, max, t) { return min + (max - min) * t; }
 // Easing functions

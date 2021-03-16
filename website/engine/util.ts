@@ -1,3 +1,4 @@
+export function floorDiv(a: number, b: number) { return Math.floor(a / b); }
 export function random() { return ((Math.random() - 0.5) * 2); }
 export function lerp(min: number, max: number, t: number) { return min + (max - min) * t; }
 
@@ -9,3 +10,4 @@ export function parametricBlend(t: number) { let sqt = t * t; return sqt / (2.0 
 export function inOutQuadBlend(t: number) { if (t <= 0.5) return 2.0 * t * t; t -= 0.5; return 2.0 * t * (1.0 - t) + 0.5; }
 
 export interface Type<T> { new(...args: any[]): T; }
+

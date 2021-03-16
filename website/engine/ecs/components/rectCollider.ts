@@ -1,6 +1,7 @@
-import { IComponentData } from "./component.js";
-import { Vec2 } from "./vector.js";
+import { Component, IComponentData } from "../component.js";
+import { Vec2 } from "../../math/vector.js";
 
+@Component
 export class RectCollider extends IComponentData {
     constructor(
         /** Corners of the box, where 0 is the lower left. */

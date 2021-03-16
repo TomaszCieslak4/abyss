@@ -4,12 +4,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { Component, IComponentData } from "./ecs/component.js";
-import { IComponentSystem } from "./ecs/componentSystem.js";
-import { IJobForEach, JobForEach } from "./ecs/job.js";
-import { RectCollider } from "./rectCollider.js";
-import { SceneManager } from "./sceneManager.js";
+import { Component, IComponentData } from "../component.js";
+import { IComponentSystem } from "../componentSystem.js";
+import { IJobForEach, JobForEach } from "../job.js";
+// Components
 import { Transform } from "./transform.js";
+import { RectCollider } from "./rectCollider.js";
+import { SceneManager } from "../../sceneManager.js";
 let Sprite = class Sprite extends IComponentData {
     constructor(sprite = new Image()) {
         super();
@@ -48,7 +49,7 @@ SpriteRendererJob = __decorate([
 ], SpriteRendererJob);
 export { SpriteRendererJob };
 export class SpriteRendererSystem extends IComponentSystem {
-    onDraw() {
+    onUpdate() {
         let job = new SpriteRendererJob();
         job.run();
     }

@@ -1,5 +1,5 @@
 import { SceneManager } from "./sceneManager.js";
-import { Vec2 } from "./vector.js";
+import { Vec2 } from "./math/vector.js";
 export class Input {
     static init(mappings, buttons) {
         Input.buttonMap = new Map();

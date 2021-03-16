@@ -4,14 +4,26 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { Component, IComponentData } from "./ecs/component.js";
-import { IComponentSystem } from "./ecs/componentSystem.js";
-import { EntityManager } from "./ecs/entity.js";
-import { IJobForEach, IJobForEachWithEntity, JobForEach } from "./ecs/job.js";
-import { RectCollider } from "./rectCollider.js";
-import { Time } from "./time.js";
+import { Component, IComponentData } from "../component.js";
+import { IComponentSystem } from "../componentSystem.js";
+import { IJobForEach, IJobForEachWithEntity, JobForEach } from "../job.js";
+import { EntityManager } from "../entity.js";
+import { Time } from "../../time.js";
+import { Vec2 } from "../../math/vector.js";
+// Components
 import { Transform } from "./transform.js";
-import { Vec2 } from "./vector.js";
+import { RectCollider } from "./rectCollider.js";
+let CollisionEvent = class CollisionEvent extends IComponentData {
+    constructor(entity, other) {
+        super();
+        this.entity = entity;
+        this.other = other;
+    }
+};
+CollisionEvent = __decorate([
+    Component
+], CollisionEvent);
+export { CollisionEvent };
 let RigidBody = class RigidBody extends IComponentData {
     constructor(velocity = Vec2.zero(), torque = 0) {
         super();
@@ -58,18 +70,21 @@ RigidBodyComputeJob = __decorate([
 ], RigidBodyComputeJob);
 export { RigidBodyComputeJob };
 let RigidBodyCollisionJob = class RigidBodyCollisionJob extends IJobForEachWithEntity {
-    constructor(colliders) {
+    constructor(colliders, entities) {
         super();
         this.colliders = colliders;
+        this.entities = entities;
     }
     execute(entity, index, rigidBody, transform, collider) {
-        for (let i = 0; i < this.colliders.length; i++) {
-            if (i !== entity.index) {
-                let MTVAxis = this.overlaps(collider, this.colliders[i]);
-                if (MTVAxis) {
-                    console.log("Collision");
-                    transform.position.i_add(MTVAxis);
-                }
+        for (const other of this.entities) {
+            if (EntityManager.isSameEntity(entity, other))
+                continue;
+            let MTVAxis = this.overlaps(collider, this.colliders[other.index]);
+            if (MTVAxis) {
+                transform.position.i_add(MTVAxis);
+                let ent = EntityManager.createEntity();
+                EntityManager.addComponent(ent, CollisionEvent);
+                EntityManager.setComponentData(ent, new CollisionEvent(entity, other));
             }
         }
     }
@@ -137,8 +152,24 @@ export class RigidBodySystem extends IComponentSystem {
         let rigidBodyComputeJob = new RigidBodyComputeJob();
         rigidBodyComputeJob.scheduleParallel();
         let colliders = EntityManager.getComponents(RectCollider);
-        let collisionJob = new RigidBodyCollisionJob(colliders);
+        let entities = EntityManager.getEntitiesWithComponents([RectCollider]);
+        let collisionJob = new RigidBodyCollisionJob(colliders, entities);
         collisionJob.scheduleParallel();
+    }
+}
+let CleanupJob = class CleanupJob extends IJobForEachWithEntity {
+    execute(entity, index, collison) {
+        EntityManager.destroyEntity(entity);
+    }
+};
+CleanupJob = __decorate([
+    JobForEach(CollisionEvent)
+], CleanupJob);
+export { CleanupJob };
+export class CleanupSystem extends IComponentSystem {
+    onFixedUpdate() {
+        let cleanupJob = new CleanupJob();
+        cleanupJob.scheduleParallel();
     }
 }
 //  /** Returns true if other overlaps one dimension of this. */

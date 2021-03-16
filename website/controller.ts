@@ -33,10 +33,11 @@ const setupGame = () => {
 };
 
 const update = (timestamp: number) => {
+    SceneManager.width = canvas.width;
+    SceneManager.height = canvas.height;
+    SceneManager.context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // for (let index = 0; index < 100000000; index++) { }
     Time.deltaTime = (timestamp - lastTime) / 1000;
-    // console.log(Time.deltaTime);
     Input.update();
 
     while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
@@ -45,7 +46,6 @@ const update = (timestamp: number) => {
     }
 
     EntityManager.update();
-    EntityManager.draw();
     lastTime = timestamp;
     interval = requestAnimationFrame(update);
 };

@@ -1,6 +1,7 @@
-import { IComponentData } from "./component.js";
-import { Vec2 } from "./vector.js";
+import { Component, IComponentData } from "../component.js";
+import { Vec2 } from "../../math/vector.js";
 
+@Component
 export class Transform extends IComponentData {
     constructor(
         public position: Vec2 = Vec2.zero(),

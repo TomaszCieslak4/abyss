@@ -4,17 +4,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { Component, IComponentData } from "./ecs/component.js";
-import { Vec2 } from "./vector.js";
-let Transform = class Transform extends IComponentData {
-    constructor(position = Vec2.zero(), rotation = 0, scale = Vec2.one()) {
+import { Component, IComponentData } from "./engine/ecs/component.js";
+let Bullet = class Bullet extends IComponentData {
+    constructor(owner) {
         super();
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
+        this.owner = owner;
     }
 };
-Transform = __decorate([
+Bullet = __decorate([
     Component
-], Transform);
-export { Transform };
+], Bullet);
+export { Bullet };
