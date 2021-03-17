@@ -2,112 +2,68 @@
 <html lang="en">
 
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta charset="utf-8">
 	<meta HTTP-EQUIV="EXPIRES" CONTENT="-1">
-	<title>f0rt9it32d</title>
+	<title>ABYSS</title>
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<div id="ui_login" style="display: none;">
+	<div class="container">
+		<header>
+			<img src="assets/logo.svg" alt="AP3X 2D Logo">
+		</header>
+
 		<main>
-			<section>
-				<h1>🎮 f0rt9it32d | Cool 2D Battle Shooter
-					<hr>
-				</h1>
-				<h3>Login</h3>
-				<table>
-					<tr>
-						<th><label for="user">User</label></th>
-						<td><input type="text" id="username" name="user" placeholder="User Name" /></td>
-					</tr>
-					<tr>
-						<th><label for="password">Password</label></th>
-						<td> <input type="password" id="password" name="password" placeholder="Password"/></td>
-					</tr>
-					<tr>
-						<th>&nbsp;</th>
-						<td><input type="submit" id="loginSubmit" name="submit" value="Login"/></td>
-					</tr>
-					<tr>
-						<th>&nbsp;</th>
-					</tr>
-				</table>
+			<div id="ui_login">
+				<form class="center-screen" onsubmit="event.preventDefault()">
+					<h2>Log In</h2>
+					<label for="user">Username:</label>
+					<input type="text" id="username" name="user" placeholder="Username" />
+
+					<label for="password">Password:</label>
+					<input type="password" id="password" name="password" placeholder="Password"/>
+					
+					<input type="submit" id="loginSubmit" class="primaryButton" name="submit" value="Log In"/>
+					<input type="submit" id="registerPage" class="secondaryButton" name="submit" value="Don't have an account? Register"/>
 				</form>
-				<td><input type="submit" id="registerPage" name="submit" value="Register New Account"/></td>
-			</section>
-		</main>
-		<footer>
-			Created 2021 by Tomasz & Julian
-		</footer>
-	</div>
-	<div id="ui_register" style="display: none;">
-		<main>
-			<section>
-				<h1>🎮 f0rt9it32d | Cool 2D Battle Shooter
-					<hr>
-				</h1>
-				<h3>Registration</h3>
-				<legend>Account details | <u title="required">Required*</u> </legend><br>
-				<table>
-
-					<tr>
-						<th><label for="user">User *</label></th>
-						<td>
-							<input type="text" name="user" placeholder="Username" pattern="[A-Za-z]{3,50}$"
-								title="3-50 characters, all letters" />
-						</td>
-					</tr>
-
-					<tr>
-						<th><label for="password">Password *</label></th>
-						<td>
-							<input type="password" placeholder="Password" name="password"
-								pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{7,50}$"
-								title="7-50 characters, at least one letter and one number" />
-						</td>
-					</tr>
-					<tr>
-						<th><label for="password2"></label></th>
-						<td>
-							<input placeholder="Confirm Password" type="password" name="password2" />*
-						</td>
-					</tr>
-
-					<tr>
-						<th><label for="tos">Rules *</label></th>
-						<td>
-							I will not cheat. <input type="checkbox" id="tos" name="tos" value="selected">
-							<br>
-						</td>
-					</tr>
-
-					<tr>
-						<th>&nbsp;</th>
-						<td><input type="submit" name="submit" id='registerSubmit' value="register account" /></td>
-					</tr>
-					<!-- <tr><th>&nbsp;</th>Errors?<td></td></tr> -->
-				</table>
-				</form>
-				<td><input type="submit" id="loginPage" name="submit" value="Login Account"/></td>
-			</section>
-		</main>
-		<footer>
-			Created 2021 by Tomasz & Julian
-		</footer>
-	</div>
-	<!-- <h1>f0rt9it32d</h1>
-		<div id="ui_login">
-			<div>
-				<input type="text" id="username" placeholder="User Name" />
-				<input type="password" id="password" placeholder="Password" />
-				<input type="submit" id="loginSubmit" value="Login">
 			</div>
-		</div> -->
-	<div id="ui_play" style="display: none;">
+
+			<div id="ui_register" style="display: none;">
+				<form class="center-screen" onsubmit="event.preventDefault()">
+					<h2>Sign Up</h2>
+					<label for="regUsername">Username:</label>
+					<input type="text" name="regUsername" id="regUsername" placeholder="Username"/>
+					
+					<label for="regPassword">Password:</label>
+					<input type="password" id="regPassword" placeholder="Password" name="regPassword"/>
+					
+					<label for="regPasswordConfirm"></label>
+					<input placeholder="Confirm Password" id="regPasswordConfirm" type="password" name="regPasswordConfirm" />
+					
+					<label class="tolabel" for="tos">
+						I will not cheat
+						<input type="checkbox" id="tos" name="tos">
+					</label>
+					
+					<input type="submit" name="submit" id='registerSubmit' class="primaryButton" value="Register Account" />
+					<input type="submit" id="loginPage" class="secondaryButton" name="submit" value="Already have an account? Log In"/>
+					<audio src="assets/godwave.mp3"></audio>
+				</form>
+			</div>
+		</main>
+	
+		<footer>
+			<p>Made by Tomasz, Julian (and Brian xd) 2021</p>
+		</footer>
 	</div>
+
+	<!-- <div class= "center-screen">
+		TESTING
+	</div> -->
+
 	<canvas id="stage"></canvas>
 	<script src="jquery-3.5.1.min.js"></script>
 	<script language="javascript" src="controller.js" type="module"></script>
 </body>
-
 </html>

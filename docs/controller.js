@@ -1,13 +1,20 @@
-import { Camera } from "./camera.js";
-import { Input } from "./input.js";
+import { Camera } from "./core/camera.js";
+import { Input } from "./util/input.js";
 import { SceneManager } from "./scene/sceneManager.js";
+import { Time } from "./util/time.js";
 let interval = 0;
 let lastTime = 0;
 let lastFixedUpdate = 0;
 const update = (timestamp) => {
+    var _a;
     Input.update();
-    SceneManager.activeScene.update((timestamp - lastTime) / 1000);
-    Camera.main.draw();
+    Time.deltaTime = (timestamp - lastTime) / 1000;
+    while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
+        SceneManager.activeScene.fixedUpdate();
+        lastFixedUpdate += Time.fixedDeltaTime * 1000;
+    }
+    SceneManager.activeScene.update();
+    (_a = Camera.main) === null || _a === void 0 ? void 0 : _a.beginDraw();
     lastTime = timestamp;
     interval = requestAnimationFrame(update);
 };

@@ -53,18 +53,18 @@ app.use('/api/auth', function (req, res, next) {
         let sql = 'SELECT * FROM ftduser WHERE username=$1 and password=sha512($2)';
         pool.query(sql, [username, password], (err, pgRes) => {
             if (err) {
-                res.status(403).json({ error: 'Not authorized' });
+                res.status(403).json({ error: 'Not fffauthorized' });
             }
             else if (pgRes.rowCount == 1) {
                 next();
             }
             else {
-                res.status(403).json({ error: 'Not authorized' });
+                res.status(403).json({ error: 'Not ffauthorized' });
             }
         });
     }
     catch (err) {
-        res.status(403).json({ error: 'Not authorized' });
+        res.status(403).json({ error: 'Not fauthorized' });
     }
 });
 // All routes below /api/auth require credentials 
