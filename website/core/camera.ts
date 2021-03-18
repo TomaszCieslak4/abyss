@@ -21,18 +21,15 @@ export class Camera extends Script {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         for (const obj of SceneManager.activeScene.gameObjects) {
-            obj.draw(this.context, this);
+            obj._draw(this.context, this);
         }
     }
 
     viewportToWorld() {
         let size = Math.min(this.canvas.width, this.canvas.height);
-        return this.gameObject.transform.objectToWorld.mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1])).mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)).mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2))));
-        // 
-        // return this.gameObject.transform.objectToWorld
-        //     .mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2)))
-        //     .mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)));
-        // .mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1]));
+        return this.gameObject.transform.objectToWorld
+            .mul(Mat3.create_scale(new Vec2(1 / size, 1 / size))
+                .mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2))));
     }
 
     worldToViewport() {
@@ -41,6 +38,6 @@ export class Camera extends Script {
         return this.gameObject.transform.objectToWorld
             .mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)))
             .mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2)))
-            .inverse().mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1]));
+            .inverse();
     }
 }

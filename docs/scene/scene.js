@@ -1,12 +1,21 @@
-import { Vec2 } from "../util/vector.js";
 export class Scene {
     constructor() {
         this.gameObjects = [];
     }
-    instantiate(obj, position = Vec2.zero()) {
+    instantiate(obj, position, scale, rotation, parent, worldSpace) {
         let newObj = new obj();
-        newObj.transform.position = position;
         this.gameObjects.push(newObj);
+        if (!worldSpace && parent)
+            newObj.transform.parent = parent;
+        if (position)
+            newObj.transform.localPosition = position;
+        if (scale)
+            newObj.transform.localScale = scale;
+        if (rotation)
+            newObj.transform.localRotation = rotation;
+        if (worldSpace && parent)
+            newObj.transform.parent = parent;
+        newObj._start();
         return newObj;
     }
     destroy(obj) {
@@ -18,12 +27,12 @@ export class Scene {
     }
     update() {
         for (let i = 0; i < this.gameObjects.length; i++) {
-            this.gameObjects[i].update();
+            this.gameObjects[i]._update();
         }
     }
     fixedUpdate() {
         for (let i = 0; i < this.gameObjects.length; i++) {
-            this.gameObjects[i].fixedUpdate();
+            this.gameObjects[i]._fixedUpdate();
         }
     }
     onLoad() { }

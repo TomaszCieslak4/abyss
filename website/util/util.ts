@@ -3,7 +3,7 @@ export interface Type<T> { new(...args: any[]): T; }
 export function floorDiv(a: number, b: number) { return Math.floor(a / b); }
 export function random() { return ((Math.random() - 0.5) * 2); }
 export function lerp(min: number, max: number, t: number) { return min + (max - min) * t; }
-export function clampAngle(number: number) { return number; } //number % (2 * Math.PI); }
+export function clampAngle(number: number) { return (number + Math.PI * 2) % (Math.PI * 2); }
 
 // Easing functions
 export function bezierBlend(t: number) { return t * t * (3.0 - 2.0 * t); }

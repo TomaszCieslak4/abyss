@@ -17,10 +17,9 @@ export class Weapon extends Script {
     shoot() {
         if (this.timeToReload >= this.reloadTime) {
             this.timeToReload = 0;
-            let bullet = this.gameObject.instantiate(MouseBulletPrefab);
-            let direction = this.gameObject.transform.position.sub(Camera.main.viewportToWorld().mul_vec2(Input.mousePos)).normalize();
-            bullet.getComponent(RigidBody).velocity = direction.mul_s(-800);
-            bullet.transform.position = this.gameObject.transform.position;
+            let direction = Camera.main.viewportToWorld().mul_vec2(Input.mousePos).sub(this.spawnpoint.transform.position).normalize();
+            let bullet = this.gameObject.instantiate(MouseBulletPrefab, this.spawnpoint.transform.position, null, direction.get_angle(), null);
+            bullet.getComponent(RigidBody).velocity = bullet.transform.forward.mul_s(50);
         }
     }
 }

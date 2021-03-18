@@ -71,6 +71,9 @@ export class Transform extends Script {
         }
         this.localRotation = value;
     }
+    get root() { return this.parent == null ? this : this.parent.root; }
+    get forward() { return Vec2.from_angle(this.objectToWorld.get_rotation()); }
+    set forward(value) { this.rotation = value.get_angle() - Math.PI / 2; }
     get parent() { return this._parent; }
     set parent(value) {
         if (this._parent)

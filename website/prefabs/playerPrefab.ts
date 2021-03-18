@@ -1,4 +1,5 @@
 import { GameObject } from "../core/gameObject.js";
+import { BoxCollider } from "../physics/boxCollider.js";
 import { RigidBody } from "../physics/rigidbody.js";
 import { SpriteRenderer } from "../renderer/spriteRenderer.js";
 import { Player } from "../script/player.js";
@@ -10,17 +11,15 @@ export class PlayerPrefab extends GameObject {
     constructor() {
         super();
         this.name = "Player";
+        this.tag = "Player";
 
         this.addComponent(RigidBody);
         this.addComponent(SpriteRenderer);
+        this.addComponent(BoxCollider);
+
         let player = this.addComponent(Player);
+        let weapon = this.instantiate(WeaponPrefab, new Vec2(0.55, 0), null, null, this.transform);
 
-        let weapon = this.instantiate(WeaponPrefab);
-        weapon.transform.parent = this.transform;
-        weapon.transform.localScale = new Vec2(0.1, 2);
-        weapon.transform.localPosition = new Vec2(1, 0);
         player.weapon = weapon.getComponent(Weapon);
-
-        this.start();
     }
 }

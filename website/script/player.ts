@@ -15,8 +15,9 @@ export class Player extends Script {
     }
 
     update() {
-        this.rigidBody.velocity = new Vec2(Input.getAxis("x") * 500, Input.getAxis("y") * 500);
-        // this.gameObject.transform.rotation += Math.PI / 6 * Time.deltaTime;
+        this.rigidBody.velocity = new Vec2(Input.getAxis("x") * 10, -Input.getAxis("y") * 10);
+        let direction = this.gameObject.transform.position.sub(Camera.main.viewportToWorld().mul_vec2(Input.mousePos)).mul_s(-1).normalize();
+        this.gameObject.transform.forward = direction;
 
         if (Input.getButton("fire")) {
             this.weapon?.shoot();

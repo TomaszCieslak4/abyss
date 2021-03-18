@@ -4,6 +4,8 @@ import { GameObject } from "../core/gameObject.js";
 import { Camera } from "../core/camera.js";
 import { FollowCamera } from "../script/followCamera.js";
 import { Vec2 } from "../util/vector.js";
+import { BoxCollider } from "../physics/boxCollider.js";
+import { SpriteRenderer } from "../renderer/spriteRenderer.js";
 export class GameScene extends Scene {
     onLoad() {
         $("#ui_game").show();
@@ -19,14 +21,20 @@ export class GameScene extends Scene {
         cam.addComponent(Camera);
         let comp = cam.addComponent(FollowCamera);
         cam.transform.position = new Vec2(0, 0);
-        cam.transform.scale = new Vec2(1000, 1000);
+        cam.transform.scale = new Vec2(30, 30);
         comp.player = this.instantiate(PlayerPrefab);
-        comp.player.transform.scale = new Vec2(100, 100);
-        comp.player.transform.position = new Vec2(200, 200);
-        comp.player.start();
-        console.log(cam.transform.scale);
-        cam.start();
-        // new Wall(new Vec2(200, 200), new Vec2(1000, 10));
+        let topWall = this.instantiate(GameObject, new Vec2(0, 20), new Vec2(41, 1));
+        topWall.addComponent(BoxCollider);
+        topWall.addComponent(SpriteRenderer);
+        let bottomWall = this.instantiate(GameObject, new Vec2(0, -20), new Vec2(41, 1));
+        bottomWall.addComponent(BoxCollider);
+        bottomWall.addComponent(SpriteRenderer);
+        let leftWall = this.instantiate(GameObject, new Vec2(-20, 0), new Vec2(1, 41));
+        leftWall.addComponent(BoxCollider);
+        leftWall.addComponent(SpriteRenderer);
+        let rightWall = this.instantiate(GameObject, new Vec2(20, 0), new Vec2(1, 41));
+        rightWall.addComponent(BoxCollider);
+        rightWall.addComponent(SpriteRenderer);
     }
     onUnLoad() {
         $(".container").removeClass("nonclick");

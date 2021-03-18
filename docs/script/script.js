@@ -6,5 +6,6 @@ export class Script {
     fixedUpdate() { }
     start() { }
     draw(context, cam) { }
-    onCollisionEnter(other) { }
+    onCollisionEnter(collision) { }
+    onTriggerEnter(collision) { }
 }

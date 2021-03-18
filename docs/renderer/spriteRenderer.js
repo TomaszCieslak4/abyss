@@ -5,11 +5,11 @@ export class SpriteRenderer extends Script {
         context.setTransform(...cam.worldToViewport().mul(this.gameObject.transform.objectToWorld).toCanvasTransform());
         if (!this.sprite || !this.sprite.complete || this.sprite.naturalWidth === 0) {
             context.fillStyle = "red";
-            context.fillRect(-1, -1, 2, 2);
+            context.fillRect(-0.5, -0.5, 1, 1);
             context.restore();
             return;
         }
-        context.drawImage(this.sprite, -1, -1, 2, 2);
+        context.drawImage(this.sprite, -0.5, -0.5, 1, 1);
         context.restore();
     }
 }
