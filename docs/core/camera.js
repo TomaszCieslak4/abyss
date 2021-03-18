@@ -1,5 +1,6 @@
 import { SceneManager } from "../scene/sceneManager.js";
 import { Script } from "../script/script.js";
+import { Mat3 } from "../util/matrix.js";
 import { Vec2 } from "../util/vector.js";
 export class Camera extends Script {
     start() {
@@ -8,8 +9,6 @@ export class Camera extends Script {
         Camera.main = this;
     }
     beginDraw() {
-        // this.canvas.width = window.innerWidth;
-        // this.canvas.height = window.innerHeight;
         this.canvas.width = document.body.clientWidth;
         this.canvas.height = document.body.clientHeight;
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -17,10 +16,20 @@ export class Camera extends Script {
             obj.draw(this.context, this);
         }
     }
-    toViewport(x) {
-        return x.sub(this.gameObject.transform.position).add(new Vec2(this.canvas.width, this.canvas.height).div_s(2));
+    viewportToWorld() {
+        let size = Math.min(this.canvas.width, this.canvas.height);
+        return this.gameObject.transform.objectToWorld.mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1])).mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)).mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2))));
+        // 
+        // return this.gameObject.transform.objectToWorld
+        //     .mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2)))
+        //     .mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)));
+        // .mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1]));
     }
-    toWorld(x) {
-        return x.add(this.gameObject.transform.position).sub(new Vec2(this.canvas.width, this.canvas.height).div_s(2));
+    worldToViewport() {
+        let size = Math.min(this.canvas.width, this.canvas.height);
+        return this.gameObject.transform.objectToWorld
+            .mul(Mat3.create_scale(new Vec2(1 / size, 1 / size)))
+            .mul(Mat3.create_translation(new Vec2(-this.canvas.width / 2, -this.canvas.height / 2)))
+            .inverse().mul(new Mat3([1, 0, 0, 0, -1, 0, 0, 0, 1]));
     }
 }

@@ -5,7 +5,7 @@ import { Vec2 } from "../util/vector.js";
 export class Scene {
     gameObjects: GameObject[] = [];
 
-    instantiate<T extends GameObject>(obj: Type<T>, position: Vec2 = Vec2.one()) {
+    instantiate<T extends GameObject>(obj: Type<T>, position: Vec2 = Vec2.zero()) {
         let newObj = new obj();
         newObj.transform.position = position;
         this.gameObjects.push(newObj);

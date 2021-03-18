@@ -8,7 +8,6 @@ export class WeaponPrefab extends GameObject {
         super();
         this.addComponent(SpriteRenderer);
         this.addComponent(Weapon);
-        this.transform.scale = new Vec2(2, 15);
         this.start();
     }
 }

@@ -7,8 +7,6 @@ import { Vec2 } from "../util/vector.js";
  *  src: https://www.flipcode.com/archives/2D_OBB_Intersection.shtml
  */
 export class RectCollider extends Script {
-    transform: Transform;
-
     /** Corners of the box, where 0 is the lower left. */
     corner: Vec2[] = [Vec2.zero(), Vec2.zero(), Vec2.zero(), Vec2.zero()];
 
@@ -17,12 +15,6 @@ export class RectCollider extends Script {
 
     /** origin[a] = corner[0].dot(axis[a]); */
     origin: number[] = [0];
-
-    constructor(public gameObject: GameObject) {
-        super(gameObject);
-        this.transform = this.gameObject.getComponent(Transform) as Transform;
-    }
-
 
     // constructor(center: Vec2, public size: Vec2, angle: number) {
     //     let x = new Vec2(Math.cos(angle), Math.sin(angle));
@@ -84,21 +76,9 @@ export class RectCollider extends Script {
         // dot product must be less than 1 to fall within the edge.
 
         for (let a = 0; a < 2; ++a) {
-            this.axis[a].i_div_s(this.axis[a].sqr_magnitude());
+            this.axis[a].div_s(this.axis[a].sqr_magnitude());
             this.origin[a] = this.corner[0].dot(this.axis[a]);
         }
-    }
-
-    /** For testing purposes. */
-    public moveTo(center: Vec2): void {
-        let centroid = this.corner[0].add(this.corner[1]).i_add(this.corner[2]).i_add(this.corner[3]).i_div_s(4);
-        let translation = center.sub(centroid);
-
-        for (let c = 0; c < 4; ++c) {
-            this.corner[c].i_add(translation);
-        }
-
-        this.computeAxes();
     }
 
     /** Returns true if the intersection of the boxes is non-empty. */

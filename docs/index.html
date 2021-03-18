@@ -7,6 +7,7 @@
 	<meta HTTP-EQUIV="EXPIRES" CONTENT="-1">
 	<title>ABYSS</title>
 	<link rel="stylesheet" href="style.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
 	<div class="container">
@@ -15,7 +16,7 @@
 		</header>
 
 		<main>
-			<div id="ui_login">
+			<div id="ui_login" style="display: none;">
 				<form class="center-screen" onsubmit="event.preventDefault()">
 					<h2>Log In</h2>
 					<label for="user">Username:</label>
@@ -26,6 +27,7 @@
 					
 					<input type="submit" id="loginSubmit" class="primaryButton" name="submit" value="Log In"/>
 					<input type="submit" id="registerPage" class="secondaryButton" name="submit" value="Don't have an account? Register"/>
+					<div id="loginErr"></div>
 				</form>
 			</div>
 
@@ -33,37 +35,52 @@
 				<form class="center-screen" onsubmit="event.preventDefault()">
 					<h2>Sign Up</h2>
 					<label for="regUsername">Username:</label>
-					<input type="text" name="regUsername" id="regUsername" placeholder="Username"/>
-					
+					<input type="text" name="regUsername" id="regUsername" placeholder="Username" pattern="[a-zA-Z0-9]{3,20}" title="Must have 3 to 20 characters or numbers"/>
+
 					<label for="regPassword">Password:</label>
-					<input type="password" id="regPassword" placeholder="Password" name="regPassword"/>
+					<input type="password" id="regPassword" placeholder="Password" name="regPassword" pattern="[a-zA-Z0-9]{8,}" title="At least 8 characters or numbers"/>
 					
 					<label for="regPasswordConfirm"></label>
 					<input placeholder="Confirm Password" id="regPasswordConfirm" type="password" name="regPasswordConfirm" />
 					
+					<div>
+						<label>Please select your preferred difficulty:</label><br>
+						<input type="radio" class="difficulty" name="difficulty" value="easy">
+						<label for="easy">Easy</label>
+						<input type="radio" class="difficulty" name="difficulty" value="medium">
+						<label for="medium">Medium</label>
+						<input type="radio" class="difficulty" name="difficulty" value="hard">
+						<label for="hard">Hard</label>
+					</div>
+
 					<label class="tolabel" for="tos">
-						I will not cheat
+						I will not cheat: 
 						<input type="checkbox" id="tos" name="tos">
 					</label>
 					
 					<input type="submit" name="submit" id='registerSubmit' class="primaryButton" value="Register Account" />
 					<input type="submit" id="loginPage" class="secondaryButton" name="submit" value="Already have an account? Log In"/>
+					<div id="registerErr"></div>
 					<audio src="assets/godwave.mp3"></audio>
 				</form>
 			</div>
 		</main>
 	
 		<footer>
-			<p>Made by Tomasz, Julian (and Brian xd) 2021</p>
+			<p>Made by Julian and Tomasz, 2021</p>
 		</footer>
 	</div>
 
-	<!-- <div class= "center-screen">
-		TESTING
-	</div> -->
-
+	<div class="ui_game" style="display: none;">
+		<span class="material-icons md-18">favorite<p class="icons"> Health:</p></span>
+		<br>
+		<span class="material-icons md-18">drag_indicator<p class="icons"> Ammo:</p></span>
+		<br>
+		<span class="material-icons md-18">sports_score<p class="icons"> Score:</p></span>
+	</div>
 	<canvas id="stage"></canvas>
 	<script src="jquery-3.5.1.min.js"></script>
 	<script language="javascript" src="controller.js" type="module"></script>
+	
 </body>
 </html>

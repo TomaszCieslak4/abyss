@@ -12,7 +12,7 @@ export class MouseBullet extends Script {
         this.rigidBody = this.gameObject.getComponent(RigidBody)!;
     }
 
-    fixedUpdate() {
-        this.rigidBody.velocity = Vec2.lerp(this.rigidBody.velocity, this.gameObject.transform.position.sub(Camera.main.toWorld(Input.mousePos)).normalize().i_mul_s(-800), 0.2);
-    }
+    // fixedUpdate() {
+    //     this.rigidBody.velocity = Vec2.lerp(this.rigidBody.velocity, this.gameObject.transform.position.sub(Camera.main.toWorld(Input.mousePos)).normalize().mul_s(-800), 0.2);
+    // }
 }

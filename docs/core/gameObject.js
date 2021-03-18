@@ -3,6 +3,7 @@ import { Transform } from "./transform.js";
 import { Vec2 } from "../util/vector.js";
 export class GameObject {
     constructor() {
+        this.name = "";
         this._transform = new Transform(this);
         this.components = new Map([[Transform.name, [this._transform]]]);
     }
@@ -71,7 +72,7 @@ export class GameObject {
             child.gameObject.draw(context, cam);
         }
     }
-    instantiate(obj, position = Vec2.one()) {
+    instantiate(obj, position = Vec2.zero()) {
         return SceneManager.activeScene.instantiate(obj, position);
     }
     destroy(obj) {

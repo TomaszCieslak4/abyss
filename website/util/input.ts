@@ -4,7 +4,8 @@ export class Input {
     private static buttonMap: Map<string, AxisValue[]> = new Map();
     private static nameMap: Map<string, Axis> = new Map();
     private static immediateMousePos: Vec2 = Vec2.one();
-    static mousePos: Vec2 = Vec2.one();
+    private static _mousePos: Vec2 = Vec2.one();
+    public static get mousePos(): Vec2 { return Input._mousePos; }
 
     static init(mappings: string[], buttons: Button[]) {
         Input.buttonMap = new Map();
@@ -60,7 +61,7 @@ export class Input {
         });
 
         document.addEventListener("mousemove", (evt) => {
-            Input.immediateMousePos.set_s(evt.pageX, evt.pageY);
+            Input.immediateMousePos = new Vec2(evt.pageX, evt.pageY);
             // Input.nameMap.get("mousePosX")!.immediateValue = evt.pageX * 2 / SceneManager.width - 1;
             // Input.nameMap.get("mousePosY")!.immediateValue = evt.pageY * 2 / SceneManager.height - 1;
         });
@@ -107,7 +108,7 @@ export class Input {
             axis.value = axis.immediateValue;
         }
 
-        Input.mousePos.set(Input.immediateMousePos);
+        Input._mousePos = Input.immediateMousePos;
     }
 }
 

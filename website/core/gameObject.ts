@@ -6,6 +6,7 @@ import { Camera } from "./camera.js";
 import { Vec2 } from "../util/vector.js";
 
 export class GameObject {
+    public name: string = "";
     private _transform: Transform = new Transform(this);
     private components: Map<string, Script[]> = new Map([[Transform.name, [this._transform]]]);
     public get transform(): Transform { return this._transform; }
@@ -87,7 +88,7 @@ export class GameObject {
         }
     }
 
-    instantiate<T extends GameObject>(obj: Type<T>, position: Vec2 = Vec2.one()) {
+    instantiate<T extends GameObject>(obj: Type<T>, position: Vec2 = Vec2.zero()) {
         return SceneManager.activeScene.instantiate(obj, position);
     }
 

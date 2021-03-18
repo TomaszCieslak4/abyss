@@ -3,7 +3,7 @@ export class Scene {
     constructor() {
         this.gameObjects = [];
     }
-    instantiate(obj, position = Vec2.one()) {
+    instantiate(obj, position = Vec2.zero()) {
         let newObj = new obj();
         newObj.transform.position = position;
         this.gameObjects.push(newObj);

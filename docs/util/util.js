@@ -1,6 +1,7 @@
 export function floorDiv(a, b) { return Math.floor(a / b); }
 export function random() { return ((Math.random() - 0.5) * 2); }
 export function lerp(min, max, t) { return min + (max - min) * t; }
+export function clampAngle(number) { return number; } //number % (2 * Math.PI); }
 // Easing functions
 export function bezierBlend(t) { return t * t * (3.0 - 2.0 * t); }
 export function easeIn(t) { return 2.0 * t * t; }

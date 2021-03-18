@@ -1,5 +1,6 @@
 import { Vec2 } from "./vector.js";
 export class Input {
+    static get mousePos() { return Input._mousePos; }
     static init(mappings, buttons) {
         Input.buttonMap = new Map();
         Input.nameMap = new Map();
@@ -46,7 +47,7 @@ export class Input {
             Input.setMappingValue(evt.key, 0);
         });
         document.addEventListener("mousemove", (evt) => {
-            Input.immediateMousePos.set_s(evt.pageX, evt.pageY);
+            Input.immediateMousePos = new Vec2(evt.pageX, evt.pageY);
             // Input.nameMap.get("mousePosX")!.immediateValue = evt.pageX * 2 / SceneManager.width - 1;
             // Input.nameMap.get("mousePosY")!.immediateValue = evt.pageY * 2 / SceneManager.height - 1;
         });
@@ -84,10 +85,10 @@ export class Input {
             axis.isPressed = axis.value === 1 && axis.immediateValue === 1;
             axis.value = axis.immediateValue;
         }
-        Input.mousePos.set(Input.immediateMousePos);
+        Input._mousePos = Input.immediateMousePos;
     }
 }
 Input.buttonMap = new Map();
 Input.nameMap = new Map();
 Input.immediateMousePos = Vec2.one();
-Input.mousePos = Vec2.one();
+Input._mousePos = Vec2.one();

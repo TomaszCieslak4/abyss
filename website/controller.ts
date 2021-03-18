@@ -24,12 +24,12 @@ $(() => {
     Input.init(["x", "y", "fire"], [
         { axis: "y", key: "w", value: 1 },
         { axis: "y", key: "s", value: -1 },
-        { axis: "x", key: "a", value: 1 },
-        { axis: "x", key: "d", value: -1 },
+        { axis: "x", key: "a", value: -1 },
+        { axis: "x", key: "d", value: 1 },
         { axis: "fire", key: "mouse0", value: 1 }
     ]);
 
-    SceneManager.setScene(0);
+    SceneManager.setScene(window.location.port === "25565" ? 2 : 0);
 
     lastTime = performance.now();
     lastFixedUpdate = lastTime;

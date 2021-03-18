@@ -107,15 +107,6 @@ img {
 	-o-user-select: none;
 }
 
-.nonclick {
-	user-select: none;
-	-moz-user-select: none;
-	-khtml-user-select: none;
-	-webkit-user-select: none;
-	-o-user-select: none;
-}
-
-
 canvas{
 	position: fixed;
 	top: 0;
@@ -125,71 +116,113 @@ canvas{
 	z-index: -1;
 }
 
+.ui_game {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	margin: 20px;
+	padding: 10px;
+	border: none;
+	border-radius: 5px;
+	/* background: #100e1705; */
+	background: rgba(255, 255, 255, 0.05);
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+	backdrop-filter: blur(3px);
+	-webkit-backdrop-filter: blur(3px);
+	width: 200px;
+}
+
+.material-icons.md-18 {
+	font-size: 18px; 
+}
+
+.icons {
+	display: inline;
+}
+
+span {
+	display: block;
+	padding: 5px 0;
+}
+
 /* LAYOUT */
 .container {
 	display: grid;
-  
+
 	grid-template-areas:
-	  "header header header"
-	  "nav content side"
-	  "footer footer footer";
-  
+		"header header header"
+		"nav content side"
+		"footer footer footer";
+
 	grid-template-columns: 200px 1fr 200px;
 	grid-template-rows: auto 1fr auto;
 	grid-gap: 10px;
-  
-	height: 100vh;
-  }
 
-  header {
+	height: 100vh;
+}
+
+.nonclick {
+	opacity: 0;
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+}
+
+header {
 	grid-area: header;
 	text-align: center;
-  }
-  
-  nav {
+}
+
+nav {
 	grid-area: nav;
 	margin-left: 0.5rem;
-  }
-  
-  main {
+}
+
+main {
 	grid-area: content;
-  }
-  
-  aside {
+}
+
+aside {
 	grid-area: side;
 	margin-right: 0.5rem;
-  }
-  
-  footer {
+}
+
+footer {
 	grid-area: footer;
 	text-align: center;
-  }
+}
 
-  footer p {
-	  padding: 10px;
-	  font-size: 14px;
-	  color: #EEEEEE;
-  }
+footer p {
+	padding: 10px;
+	font-size: 14px;
+	color: #EEEEEE;
+}
 
-  @media (max-width: 768px) {
+@media (max-width: 768px) {
 	.container {
-	  grid-template-areas:
+		grid-template-areas:
 		"header"
 		"nav"
 		"content"
 		"side"
 		"footer";
-  
-	  grid-template-columns: 1fr;
-	  grid-template-rows:
+
+		grid-template-columns: 1fr;
+		grid-template-rows:
 		auto /* Header */
 		minmax(0, auto) /* Nav */
 		1fr /* Content */
 		minmax(0, auto) /* Sidebar */
 		auto; /* Footer */
 	}
-  
+
 	nav, aside {
-	  margin: 0;
+		margin: 0;
 	}
-  }
+}
