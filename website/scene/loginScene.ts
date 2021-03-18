@@ -5,7 +5,7 @@ export class LoginScene extends Scene {
     credentials = { "username": "", "password": "" };
     errors: string[] = [];
 
-    login() {
+    async login() {
         this.errors = [];
         const myNode = document.getElementById("loginErr")!;
         myNode.innerHTML = '';
@@ -21,21 +21,22 @@ export class LoginScene extends Scene {
             this.errors.push("Please enter a password.");
         }
         if (this.errors.length === 0) {
-            $.ajax({
-                method: "POST",
-                url: "/api/auth/login",
-                data: JSON.stringify({}),
-                headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password) },
-                processData: false,
-                contentType: "application/json; charset=utf-8",
-                dataType: "json"
-            }).done((data, text_status, jqXHR) => {
-                console.log(jqXHR.status + " " + text_status + JSON.stringify(data));
+            try {
+                const result = await $.ajax({
+                    method: "POST",
+                    url: "/api/auth/login",
+                    data: JSON.stringify({}),
+                    headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password) },
+                    processData: false,
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
+                });
+                SceneManager.user.setUser(this.credentials.username);
                 SceneManager.setScene(2);
-            }).fail((err) => {
-                console.log("fail " + err.status + " " + JSON.stringify(err.responseJSON));
-                this.errors.push(JSON.stringify(err.responseJSON.error)); // TODO: Pushing after running stuff below??
-            });
+            } catch (error) {
+                console.log("fail " + error.status + " " + JSON.stringify(error.responseJSON));
+                this.errors.push(error.responseJSON.error);
+            }
         }
         var myDiv = $("#loginErr");
         var paragraph = document.createElement("p");

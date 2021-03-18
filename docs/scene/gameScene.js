@@ -1,11 +1,12 @@
 import { Scene } from "./scene.js";
-import { PlayerPrefab } from "../prefabs/playerPrefab.js";
+import { HumanPlayerPrefab } from "../prefabs/humanPlayerPrefab.js";
 import { GameObject } from "../core/gameObject.js";
 import { Camera } from "../core/camera.js";
 import { FollowCamera } from "../script/followCamera.js";
 import { Vec2 } from "../util/vector.js";
 import { BoxCollider } from "../physics/boxCollider.js";
 import { SpriteRenderer } from "../renderer/spriteRenderer.js";
+import { AIPlayerPrefab } from "../prefabs/aiPlayerPrefab.js";
 export class GameScene extends Scene {
     onLoad() {
         $("#ui_game").show();
@@ -22,7 +23,8 @@ export class GameScene extends Scene {
         let comp = cam.addComponent(FollowCamera);
         cam.transform.position = new Vec2(0, 0);
         cam.transform.scale = new Vec2(30, 30);
-        comp.player = this.instantiate(PlayerPrefab);
+        comp.player = this.instantiate(HumanPlayerPrefab, new Vec2(0, 0), null, 0);
+        this.instantiate(AIPlayerPrefab, new Vec2(10, 10));
         let topWall = this.instantiate(GameObject, new Vec2(0, 20), new Vec2(41, 1));
         topWall.addComponent(BoxCollider);
         topWall.addComponent(SpriteRenderer);

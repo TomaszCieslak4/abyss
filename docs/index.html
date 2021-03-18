@@ -16,17 +16,21 @@
 		</header>
 
 		<main>
-			<div id="ui_login" style="display: none;">
+			<div id="ui_login" class="gradborder" style="display: none;">
 				<form class="center-screen" onsubmit="event.preventDefault()">
 					<h2>Log In</h2>
-					<label for="user">Username:</label>
-					<input type="text" id="username" name="user" placeholder="Username" />
-
-					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" placeholder="Password"/>
+					<div class="input-wrapper">
+						<label for="user">Username:</label>
+						<input type="text" autocomplete="username" id="username" name="user" placeholder="Username" />
+					</div>
 					
+					<div class="input-wrapper">
+						<label for="password">Password:</label>
+						<input type="password" autocomplete="current-password" id="password" name="password" placeholder="Password"/>
+					</div>
+
 					<input type="submit" id="loginSubmit" class="primaryButton" name="submit" value="Log In"/>
-					<input type="submit" id="registerPage" class="secondaryButton" name="submit" value="Don't have an account? Register"/>
+					<input type="button" id="registerPage" class="secondaryButton" name="submit" value="Don't have an account? Register"/>
 					<div id="loginErr"></div>
 				</form>
 			</div>
@@ -35,13 +39,13 @@
 				<form class="center-screen" onsubmit="event.preventDefault()">
 					<h2>Sign Up</h2>
 					<label for="regUsername">Username:</label>
-					<input type="text" name="regUsername" id="regUsername" placeholder="Username" pattern="[a-zA-Z0-9]{3,20}" title="Must have 3 to 20 characters or numbers"/>
+					<input type="text" autocomplete="username" name="regUsername" id="regUsername" placeholder="Username" pattern="[a-zA-Z0-9]{3,20}" title="Must have 3 to 20 characters or numbers"/>
 
 					<label for="regPassword">Password:</label>
-					<input type="password" id="regPassword" placeholder="Password" name="regPassword" pattern="[a-zA-Z0-9]{8,}" title="At least 8 characters or numbers"/>
+					<input type="password" id="regPassword" placeholder="Password" name="regPassword"  autocomplete="new-password"  pattern="[a-zA-Z0-9]{8,}" title="At least 8 characters or numbers"/>
 					
 					<label for="regPasswordConfirm"></label>
-					<input placeholder="Confirm Password" id="regPasswordConfirm" type="password" name="regPasswordConfirm" />
+					<input placeholder="Confirm Password" id="regPasswordConfirm" type="password" autocomplete="new-password" name="regPasswordConfirm" />
 					
 					<div>
 						<label>Please select your preferred difficulty:</label><br>
@@ -59,9 +63,58 @@
 					</label>
 					
 					<input type="submit" name="submit" id='registerSubmit' class="primaryButton" value="Register Account" />
-					<input type="submit" id="loginPage" class="secondaryButton" name="submit" value="Already have an account? Log In"/>
+					<input type="button" id="loginPage" class="secondaryButton" name="submit" value="Already have an account? Log In"/>
 					<div id="registerErr"></div>
 					<audio src="assets/godwave.mp3"></audio>
+				</form>
+			</div>
+
+			<div id="ui_menu" style="display: none;">
+				<form class="center-screen" onsubmit="event.preventDefault()">
+					<h2>Menu</h2>
+					<div id="leaderBoard"></div>
+					
+					<input type="submit" id="start" class="primaryButton" name="submit" value="Start New Game"/>
+					<input type="submit" id="update" class="secondaryButton" name="submit" value="Update Preferences & Profile"/>
+					<input type="submit" id="logout" class="secondaryButton" name="submit" value="Logout"/>
+					
+				</form>
+			</div>
+
+			<div id="ui_profile" style="display: none;">
+				<form class="center-screen" onsubmit="event.preventDefault()">
+					<h2>Update Profile</h2>
+					<label for="updateUsername">Username:</label>
+					<input type="text" id="updateUsername" name="updateUsername" disabled/>
+					
+					<label for="newPasswordUpdate">Password:</label>
+					<input type="password" id="newPasswordUpdate" placeholder="New Password" name="newPasswordUpdate" pattern="[a-zA-Z0-9]{8,}" title="At least 8 characters or numbers"/>
+					
+					<label for="newPasswordUpdateConfirm"></label>
+					<input placeholder="Confirm New Password" id="newPasswordUpdateConfirm" type="password" name="newPasswordUpdateConfirm" />
+					
+					<div>
+						<label>Update difficulty:</label><br>
+						<input type="radio" class="difficulty" name="difficulty" value="easy">
+						<label for="easy">Easy</label>
+						<input type="radio" class="difficulty" name="difficulty" value="medium">
+						<label for="medium">Medium</label>
+						<input type="radio" class="difficulty" name="difficulty" value="hard">
+						<label for="hard">Hard</label>
+					</div><br>
+					
+					<label for="confirmPasswordUpdate"></label>
+					<input placeholder="Existing Password" id="confirmPasswordUpdate" type="password" name="confirmPasswordUpdate" />
+
+					<label class="tolabel" for="confirm">
+						I confirm these changes: 
+						<input type="checkbox" id="confirm" name="confirm">
+					</label>
+					<input type="submit" name="submit" id='updateSubmit' class="primaryButton" value="Update Account" />
+					<input type="submit" name="submit" id='deleteSubmit' class="primaryButton" value="Delete Account" />
+					<div id="updateErr"></div>
+					<input type="button" id="backToMenu" class="secondaryButton" name="submit" value="Go Back To Menu"/>
+					
 				</form>
 			</div>
 		</main>
@@ -71,12 +124,18 @@
 		</footer>
 	</div>
 
-	<div class="ui_game" style="display: none;">
-		<span class="material-icons md-18">favorite<p class="icons"> Health:</p></span>
+	<div id="ui_game" class='ui_game' style="display: none;">
+		<span class="material-icons md-18">favorite<p class="icons"> Health: </p> 
+			<p class="icons" id='health'></p>
+		</span>
 		<br>
-		<span class="material-icons md-18">drag_indicator<p class="icons"> Ammo:</p></span>
+		<span class="material-icons md-18">drag_indicator<p class="icons"> Ammo: </p>
+			<p class="icons" id='ammo'></p>
+		</span>
 		<br>
-		<span class="material-icons md-18">sports_score<p class="icons"> Score:</p></span>
+		<span class="material-icons md-18">sports_score<p class="icons"> Score: </p>
+			<p class="icons" id='score'></p>
+		</span>
 	</div>
 	<canvas id="stage"></canvas>
 	<script src="jquery-3.5.1.min.js"></script>

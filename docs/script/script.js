@@ -8,4 +8,8 @@ export class Script {
     draw(context, cam) { }
     onCollisionEnter(collision) { }
     onTriggerEnter(collision) { }
+    onCollisionStay(collision) { }
+    onTriggerStay(collision) { }
+    onCollisionExit(collider) { }
+    onTriggerExit(collider) { }
 }

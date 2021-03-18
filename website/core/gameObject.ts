@@ -10,47 +10,51 @@ export class GameObject {
     public name: string = "";
     public tag: string = "";
     private _transform: Transform = new Transform(this);
-    private components: Map<string, Script[]> = new Map([[Transform.name, [this._transform]]]);
+    private components: Script[] = [];
     public get transform(): Transform { return this._transform; }
     private isStarted: boolean = false;
 
-    addComponent<T extends Script>(component: Type<T>) {
+    addComponent<T extends Script>(component: Type<T>): T {
         let comp = new component(this);
-        let comps = this.components.get(component.name);
-
-        if (!comps) {
-            comps = []
-            this.components.set(component.name, comps);
-        }
-
-        comps.push(comp);
+        this.components.push(comp);
         if (this.isStarted) comp.start();
         return comp as T;
     }
 
-    getComponent<T extends Script>(component: Type<T>) {
-        let comps = this.components.get(component.name);
-        if (!comps || comps.length === 0) return null;
-        return comps[0] as T;
+    getComponent<T extends Script>(component: Type<T>): T | null {
+        for (const comp of this.components) {
+            if (comp instanceof component) {
+                return comp;
+            }
+        }
+
+        return null;
     }
 
-    getComponents<T extends Script>(component: Type<T>) {
-        let comps = this.components.get(component.name);
-        return comps ?? [] as T[];
+    getComponents<T extends Script>(component: Type<T>): T[] {
+        let comps: T[] = [];
+        for (const comp of this.components) {
+            if (comp instanceof component) {
+                comps.push(comp);
+            }
+        }
+        return comps;
     }
 
     getAllComponents() { return this.components; }
 
-    hasComponent<T extends Script>(component: Type<T>) {
-        let comp = this.components.get(component.name);
-        return comp ? comp.length > 0 : false;
+    hasComponent<T extends Script>(component: Type<T>): boolean {
+        for (const comp of this.components) {
+            if (comp instanceof component) {
+                return true;
+            }
+        }
+        return false;
     }
 
     _update() {
-        for (const [key, comps] of this.components) {
-            for (const comp of comps) {
-                comp.update();
-            }
+        for (const comp of this.components) {
+            comp.update();
         }
 
         for (const child of this._transform.children) {
@@ -61,18 +65,14 @@ export class GameObject {
     _start() {
         if (this.isStarted) return;
         this.isStarted = true;
-        for (const [key, comps] of this.components) {
-            for (const comp of comps) {
-                comp.start();
-            }
+        for (const comp of this.components) {
+            comp.start();
         }
     }
 
     _fixedUpdate() {
-        for (const [key, comps] of this.components) {
-            for (const comp of comps) {
-                comp.fixedUpdate();
-            }
+        for (const comp of this.components) {
+            comp.fixedUpdate();
         }
 
         for (const child of this._transform.children) {
@@ -81,10 +81,8 @@ export class GameObject {
     }
 
     _draw(context: CanvasRenderingContext2D, cam: Camera) {
-        for (const [key, comps] of this.components) {
-            for (const comp of comps) {
-                comp.draw(context, cam);
-            }
+        for (const comp of this.components) {
+            comp.draw(context, cam);
         }
 
         for (const child of this._transform.children) {

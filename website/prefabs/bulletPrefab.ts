@@ -1,17 +1,21 @@
 import { GameObject } from "../core/gameObject.js";
 import { BoxCollider } from "../physics/boxCollider.js";
+import { CircleCollider } from "../physics/circleCollider.js";
 import { RigidBody } from "../physics/rigidbody.js";
+import { CircleRenderer } from "../renderer/circleRenderer.js";
 import { SpriteRenderer } from "../renderer/spriteRenderer.js";
 import { Bullet } from "../script/bullet.js";
+import { Color } from "../util/color.js";
 import { Vec2 } from "../util/vector.js";
 
-export class MouseBulletPrefab extends GameObject {
+export class BulletPrefab extends GameObject {
     constructor() {
         super();
         this.addComponent(RigidBody);
-        this.addComponent(SpriteRenderer);
+        let renderer = this.addComponent(CircleRenderer);
         this.addComponent(Bullet);
-        this.addComponent(BoxCollider);
+        this.addComponent(CircleCollider);
         this.transform.scale = new Vec2(0.1, 0.1);
+        renderer.color = new Color(255, 215, 0);
     }
 }

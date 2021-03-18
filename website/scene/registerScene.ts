@@ -5,7 +5,7 @@ export class RegisterScene extends Scene {
     credentials = { "username": "", "password": "", "password2": "", "difficulty": "" };
     errors: string[] = [];
 
-    register() {
+    async register() {
         this.errors = [];
         const myNode = document.getElementById("registerErr")!;
         myNode.innerHTML = '';
@@ -31,21 +31,21 @@ export class RegisterScene extends Scene {
             this.errors.push("Please select preferred difficulty.");
         }
         if (this.errors.length === 0) {
-            $.ajax({
-                method: "POST",
-                url: "/api/register",
-                data: JSON.stringify({}),
-                headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password + ":" + this.credentials.difficulty) },
-                processData: false,
-                contentType: "application/json; charset=utf-8",
-                dataType: "json"
-            }).done((data, text_status, jqXHR) => {
-                console.log(jqXHR.status + " " + text_status + JSON.stringify(data));
+            try {
+                const result = await $.ajax({
+                    method: "POST",
+                    url: "/api/register",
+                    data: JSON.stringify({}),
+                    headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password + ":" + this.credentials.difficulty) },
+                    processData: false,
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
+                });
                 SceneManager.setScene(0);
-            }).fail((err) => {
-                console.log("fail " + err.status + " " + JSON.stringify(err.responseJSON));
-                this.errors.push(JSON.stringify(err.responseJSON.error)); // TODO: Pushing after running stuff below??
-            });
+            } catch (error) {
+                console.log("fail " + error.status + " " + JSON.stringify(error.responseJSON));
+                this.errors.push(error.responseJSON.error);
+            }
         }
         var myDiv = $("#registerErr");
         var paragraph = document.createElement("p");

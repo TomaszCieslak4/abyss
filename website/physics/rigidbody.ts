@@ -5,41 +5,101 @@ import { Script } from "../script/script.js";
 import { Time } from "../util/time.js";
 import { Vec2 } from "../util/vector.js";
 import { BoxCollider } from "./boxCollider.js";
+import { CircleCollider } from "./circleCollider.js";
+import { Collider } from "./collider.js";
 
 export class RigidBody extends Script {
     velocity: Vec2 = Vec2.zero();
 
-    private findCollisions(transforms: Transform[]) {
+    private findCollisions(transforms: Transform[], collider: Collider, collisions: Collision[]) {
         for (const obj of transforms) {
-            this.findCollisions(obj.children);
+            this.findCollisions(obj.children, collider, collisions);
 
+            let mtv = null;
             let root = this.gameObject.transform.root;
-            if (!obj.gameObject.hasComponent(BoxCollider) || obj.root === this.gameObject.transform.root) continue;
+            if (obj.root === root) continue;
 
-            let collider = this.gameObject.getComponent(BoxCollider)!;
-            let otherCollider = obj.gameObject.getComponent(BoxCollider)!;
-            let mtv = this.overlaps(collider, otherCollider);
+            let colliders = obj.gameObject.getComponents(Collider);
 
-            if (!mtv) continue;
-            if (!collider.isTrigger) root.position = root.position.add(mtv);
+            for (const otherCollider of colliders) {
+                if (otherCollider.isTrigger) continue;
+                // let otherCollider = obj.gameObject.getComponent(CircleCollider)!;
+                if (collider instanceof CircleCollider) {
+                    if (otherCollider instanceof CircleCollider) {
+                        let diff = otherCollider.gameObject.transform.position.sub(collider.gameObject.transform.position);
+                        let radius = (otherCollider.gameObject.transform.scale.x + collider.gameObject.transform.scale.x) / 2;
+                        let mag = diff.sqr_magnitude();
 
-            for (const [key, comps] of this.gameObject.getAllComponents()) {
-                for (const comp of comps) {
-                    if (collider.isTrigger) {
-                        comp.onTriggerEnter(new Collision(collider, mtv));
-                    } else {
-                        comp.onCollisionEnter(new Collision(collider, mtv));
+                        if (mag < radius * radius) {
+                            mtv = diff.normalize().mul_s(Math.sqrt(mag) - radius);
+                        }
+                    } else if (otherCollider instanceof BoxCollider) {
+                        mtv = this.circleRectIntersects(collider, otherCollider);
+                        // if (mvt) console.log(mvt);
+                        //     console.log("COLLIDE", collider.gameObject.transform.root.gameObject, otherCollider.gameObject.transform.root.gameObject);
                     }
                 }
+                // let mtv = this.overlaps(collider, otherCollider);
+
+                if (!mtv) continue;
+                if (!collider.isTrigger) root.position = root.position.add(mtv);
+
+                let collison = new Collision(collider, otherCollider, mtv);
+
+                if (collider.collisions.find(item => item.other === otherCollider)) {
+                    for (const comp of this.gameObject.getAllComponents()) {
+                        if (collider.isTrigger) {
+                            comp.onTriggerStay(collison);
+                        } else {
+                            comp.onCollisionStay(collison);
+                        }
+                    }
+                } else {
+                    for (const comp of this.gameObject.getAllComponents()) {
+                        if (collider.isTrigger) {
+                            comp.onTriggerEnter(collison);
+                        } else {
+                            comp.onCollisionEnter(collison);
+                        }
+                    }
+                }
+                collisions.push(collison);
+            }
+        }
+    }
+
+    findCollisionsInChildren(transforms: Transform[]) {
+        for (const trans of transforms) {
+            this.findCollisionsInChildren(trans.children);
+
+            let colliders = trans.gameObject.getComponents(Collider);
+
+            for (const collider of colliders) {
+                let collisions: Collision[] = [];
+
+                for (const obj of SceneManager.activeScene.gameObjects) {
+                    this.findCollisions([obj.transform], collider, collisions);
+                }
+
+                for (const collision of collider.collisions) {
+                    if (collisions.find(item => item.other === collision.other)) continue;
+
+                    for (const comp of this.gameObject.getAllComponents()) {
+                        if (collider.isTrigger) {
+                            comp.onTriggerExit(collision.other);
+                        } else {
+                            comp.onCollisionExit(collision.other);
+                        }
+                    }
+                }
+                collider.collisions = collisions;
             }
         }
     }
 
     fixedUpdate() {
         this.gameObject.transform.position = this.gameObject.transform.position.add(this.velocity.mul_s(Time.fixedDeltaTime));
-        for (const obj of SceneManager.activeScene.gameObjects) {
-            this.findCollisions([obj.transform]);
-        }
+        this.findCollisionsInChildren([this.gameObject.transform]);
     }
 
     private projectBodyRect(collider: BoxCollider, axis: Vec2): [number, number] {
@@ -59,6 +119,39 @@ export class RigidBody extends Script {
         }
 
         return [min, max];
+    }
+
+    circleRectIntersects(circle: CircleCollider, rect: BoxCollider): Vec2 | null {
+
+
+        // clamp(value, min, max) - limits value to the range min..max
+        let circlePos = circle.gameObject.transform.position;
+        let circleRadius = circle.gameObject.transform.scale.x / 2;
+        let rectPos = rect.gameObject.transform.position;
+        let rectScale = rect.gameObject.transform.scale.div_s(2);
+        let closest = circlePos.clamp(rectPos.sub(rectScale), rectPos.add(rectScale));
+
+        // Find the closest point to the circle within the rectangle
+        // float closestX = clamp(circle.X, rectangle.Left, rectangle.Right);
+        // float closestY = clamp(circle.Y, rectangle.Top, rectangle.Bottom);
+
+        // Calculate the distance between the circle's center and this closest point
+        // float distanceX = circle.X - closestX;
+        // float distanceY = circle.Y - closestY;
+        let diff = circlePos.sub(closest);
+        let dist = diff.sqr_magnitude();
+
+        // console.log(dist);
+        // debugger;
+
+        // If the distance is less than the circle's radius, an intersection occurs
+        // float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+        if (dist >= (circleRadius * circleRadius)) return null;
+        // console.log(circlePos, rectPos, rectScale, closest, rectPos.sub(rectScale), rectPos.add(rectScale),
+        //     circle.gameObject);
+        // console.log(dist, circleRadius * circleRadius);
+        // debugger
+        return diff.normalize().mul_s(circleRadius - Math.sqrt(dist));
     }
 
     // private projectBodyCicle(collider: CircleCollider, axis: Vec2) {
@@ -111,5 +204,5 @@ export class RigidBody extends Script {
 }
 
 export class Collision {
-    constructor(collider: BoxCollider, public mvt: Vec2) { }
+    constructor(public collider: Collider, public other: Collider, public mvt: Vec2) { }
 }

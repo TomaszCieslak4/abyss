@@ -32,6 +32,92 @@ app.post('/api/test', function (req, res) {
 	res.json({ "message": "got here" });
 });
 
+app.use('/api/check', async (req, res, next) => {
+	if (!req.headers.authorization) {
+		return res.status(403).json({ error: 'No username sent!' });
+	}
+	try {
+		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
+
+		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
+		m = /^(.*)$/.exec(user_pass); // probably should do better than this
+
+		let username = m ? m[1] : "";
+
+		console.log(username);
+
+		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
+		pool.query(query, [username], (err, pgRes) => {
+			if (err) {
+				res.status(500).json({ error: 'Database error occured' });
+			} else if (pgRes.rowCount == 1) {
+				next();
+			} else {
+				res.status(401).json({ error: 'Username does not exist.' });
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ error: 'Server error occured' });
+	}
+});
+
+
+// app.post('/api/check', async (req, res) => {
+// 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
+
+// 	try {
+// 		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+// 		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
+
+// 		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
+// 		m = /^(.*)$/.exec(user_pass); // probably should do better than this
+
+// 		let username = m ? m[1] : "";
+
+// 		console.log(username);
+
+// 		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
+
+// 		let result = await pool.query(query, [username]);
+// 		if (result.rowCount !== 1) return res.status(401).json({ error: 'User does not exist!' });
+
+// 	} catch (err) {
+// 		return res.status(500).json({ error: 'Server error' });
+// 	}
+
+// 	res.status(200).json({ "message": "Registration complete" });
+// });
+
+app.post('/api/userinfo', async (req, res) => {
+	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
+
+	try {
+		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
+
+		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
+		m = /^(.*)$/.exec(user_pass); // probably should do better than this
+
+		let username = m ? m[1] : "";
+
+		console.log(username);
+
+		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
+		pool.query(query, [username], (err, pgRes) => {
+			if (err) {
+				res.status(500).json({ error: 'Database error occured' });
+			} else if (pgRes.rowCount == 1) {
+				next();
+			} else {
+				res.status(401).json({ error: 'Incorrect credentials.' });
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ error: 'Server error occured' });
+	}
+});
+
 app.post('/api/register', async (req, res) => {
 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
 
@@ -58,9 +144,9 @@ app.post('/api/register', async (req, res) => {
 			return res.status(401).json({ error: 'Please select preferred difficulty.' });
 		}
 		else {
-			let query = 'SELECT * FROM ftduser WHERE username=$1 and password=sha512($2)';
+			let query = 'SELECT * FROM ftduser WHERE username=$1';
 
-			let result = await pool.query(query, [username, password]);
+			let result = await pool.query(query, [username]);
 			if (result.rowCount > 0) return res.status(401).json({ error: 'User already exists!' });
 
 			query = 'INSERT INTO ftduser (username, password, difficulty) VALUES ($1, sha512($2), $3)';
@@ -117,7 +203,7 @@ app.use('/api/auth', async (req, res, next) => {
 			} else if (pgRes.rowCount == 1) {
 				next();
 			} else {
-				res.status(401).json({ error: 'No user exists' });
+				res.status(401).json({ error: 'Incorrect credentials.' });
 			}
 		});
 	} catch (err) {

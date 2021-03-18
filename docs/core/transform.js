@@ -73,7 +73,7 @@ export class Transform extends Script {
     }
     get root() { return this.parent == null ? this : this.parent.root; }
     get forward() { return Vec2.from_angle(this.objectToWorld.get_rotation()); }
-    set forward(value) { this.rotation = value.get_angle() - Math.PI / 2; }
+    set forward(value) { this.rotation = value.get_angle(); }
     get parent() { return this._parent; }
     set parent(value) {
         if (this._parent)
@@ -98,7 +98,7 @@ export class Transform extends Script {
             }
         }
     }
-    addChild(transform) {
+    addChild(transform, index = -1) {
         if (transform._parent) {
             transform._parent.removeChild(this);
         }
@@ -112,7 +112,11 @@ export class Transform extends Script {
         let position = transform.position;
         let rotation = transform.rotation;
         let scale = transform.scale;
-        this.children.push(transform);
+        if (index > this.children.length)
+            index = this._children.length;
+        if (index < 0)
+            index = this.children.length;
+        this.children.splice(index, 0, transform);
         transform._parent = this;
         transform.position = position;
         transform.rotation = rotation;

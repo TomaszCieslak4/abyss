@@ -10,10 +10,12 @@ let lastFixedUpdate: number = 0;
 const update = (timestamp: number) => {
     Input.update();
     Time.deltaTime = (timestamp - lastTime) / 1000;
-    while (timestamp - lastFixedUpdate >= Time.fixedDeltaTime * 1000) {
+    let change = 0;
+    while (timestamp - lastFixedUpdate - change >= Time.fixedDeltaTime * 1000 && change < 1000) {
         SceneManager.activeScene.fixedUpdate();
-        lastFixedUpdate += Time.fixedDeltaTime * 1000;
+        change += Time.fixedDeltaTime * 1000;
     }
+    lastFixedUpdate += change;
     SceneManager.activeScene.update();
     Camera.main?.beginDraw();
     lastTime = timestamp;
