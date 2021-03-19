@@ -32,6 +32,31 @@ app.post('/api/test', function (req, res) {
 	res.json({ "message": "got here" });
 });
 
+app.get('/api/topten', async (req, res) => {
+	if (!req.headers.authorization) return res.status(403).json({ error: 'No table speicifc sent!' });
+
+	try {
+		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
+
+		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
+		m = /^(.*)$/.exec(user_pass); // probably should do better than this
+
+		let table = m ? m[1] : "";
+
+		if (table === "") {
+			return res.status(401).json({ error: 'Please select a table.' });
+		}
+
+		let query = 'SELECT username, score FROM $1 ORDER BY score DESC LIMIT 10;';
+		let result = await pool.query(query, [table]);
+		
+	} catch (err) {
+		res.status(500).json({ error: 'Server error occured' });
+	}
+	res.status(200).json({ "message": "Top 10 listed!" });
+});
+
 app.use('/api/check', async (req, res, next) => {
 	if (!req.headers.authorization) {
 		return res.status(403).json({ error: 'No username sent!' });
@@ -47,7 +72,7 @@ app.use('/api/check', async (req, res, next) => {
 
 		console.log(username);
 
-		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
+		let query = 'SELECT * FROM ftduser WHERE username=$1';
 		pool.query(query, [username], (err, pgRes) => {
 			if (err) {
 				res.status(500).json({ error: 'Database error occured' });
@@ -62,34 +87,7 @@ app.use('/api/check', async (req, res, next) => {
 	}
 });
 
-
-// app.post('/api/check', async (req, res) => {
-// 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
-
-// 	try {
-// 		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
-// 		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
-
-// 		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
-// 		m = /^(.*)$/.exec(user_pass); // probably should do better than this
-
-// 		let username = m ? m[1] : "";
-
-// 		console.log(username);
-
-// 		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
-
-// 		let result = await pool.query(query, [username]);
-// 		if (result.rowCount !== 1) return res.status(401).json({ error: 'User does not exist!' });
-
-// 	} catch (err) {
-// 		return res.status(500).json({ error: 'Server error' });
-// 	}
-
-// 	res.status(200).json({ "message": "Registration complete" });
-// });
-
-app.post('/api/userinfo', async (req, res) => {
+app.get('/api/check/userinfo', async (req, res) => {
 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
 
 	try {
@@ -104,21 +102,24 @@ app.post('/api/userinfo', async (req, res) => {
 		console.log(username);
 
 		let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
-		pool.query(query, [username], (err, pgRes) => {
-			if (err) {
-				res.status(500).json({ error: 'Database error occured' });
-			} else if (pgRes.rowCount == 1) {
-				next();
-			} else {
-				res.status(401).json({ error: 'Incorrect credentials.' });
-			}
-		});
+		let result = await pool.query(query, [username]);
+
+		query = 'SELECT score FROM easyScore WHERE username=$1';
+		result = await pool.query(query, [username]);
+
+		query = 'SELECT score FROM mediumScore WHERE username=$1';
+		result = await pool.query(query, [username]);
+
+		query = 'SELECT score FROM hardScore WHERE username=$1';
+		result = await pool.query(query, [username]);
+		
 	} catch (err) {
 		res.status(500).json({ error: 'Server error occured' });
 	}
+	res.status(200).json({ "message": "Registration complete" });
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/check/register', async (req, res) => {
 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
 
 	try {
@@ -144,13 +145,9 @@ app.post('/api/register', async (req, res) => {
 			return res.status(401).json({ error: 'Please select preferred difficulty.' });
 		}
 		else {
-			let query = 'SELECT * FROM ftduser WHERE username=$1';
 
-			let result = await pool.query(query, [username]);
-			if (result.rowCount > 0) return res.status(401).json({ error: 'User already exists!' });
-
-			query = 'INSERT INTO ftduser (username, password, difficulty) VALUES ($1, sha512($2), $3)';
-			result = await pool.query(query, [username, password, difficulty]);
+			let query = 'INSERT INTO ftduser (username, password, difficulty) VALUES ($1, sha512($2), $3)';
+			let result = await pool.query(query, [username, password, difficulty]);
 
 			let zero = 0;
 
@@ -215,6 +212,42 @@ app.use('/api/auth', async (req, res, next) => {
 app.post('/api/auth/login', function (req, res) {
 	res.status(200);
 	res.json({ "message": "authentication success" });
+});
+
+app.put('/api/auth/updateuser', async (req, res) => {
+	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
+
+	try {
+		// let credentialsString = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
+
+		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
+		m = /^(.*):(.*):(.*):(.*):(.*)$/.exec(user_pass); // probably should do better than this
+
+		let username = m ? m[1] : "";
+		let newpassword = m ? m[3] : "";
+		let difficulty = m ? m[4] : "";
+
+		console.log(username + " " + newpassword);
+
+		if (newpassword.length < 8 || newpassword.match(/^[a-zA-Z0-9]+$/) === null) {
+			return res.status(401).json({ error: 'Passwords should be betweeen at least 8 characters or numbers.' });
+		}
+		if (difficulty === "") {
+			return res.status(401).json({ error: 'Please select preferred difficulty.' });
+		}
+		else {
+
+			let query = 'UPDATE ftduser SET password=sha512($2), difficulty=$3 WHERE username=$1';
+			let result = await pool.query(query, [username, newpassword, difficulty]);
+
+		}
+
+	} catch (err) {
+		return res.status(500).json({ error: 'Server error' });
+	}
+
+	res.status(200).json({ "message": "Update complete" });
 });
 
 app.delete('/api/auth/delete', async (req, res) => {

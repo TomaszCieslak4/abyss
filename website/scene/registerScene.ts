@@ -2,7 +2,7 @@ import { Scene } from "./scene.js";
 import { SceneManager } from "./sceneManager.js";
 
 export class RegisterScene extends Scene {
-    credentials = { "username": "", "password": "", "password2": "", "difficulty": "" };
+    credentials = { "username": "", "password": "", "difficulty": "" };
     errors: string[] = [];
 
     async register() {
@@ -14,10 +14,10 @@ export class RegisterScene extends Scene {
         this.credentials = {
             "username": $("#regUsername").val() as string,
             "password": $("#regPassword").val() as string,
-            "password2": $("#regPasswordConfirm").val() as string,
             "difficulty": $(".difficulty:checked").val() as string
         };
-        if (this.credentials.password !== this.credentials.password2) {
+        let password2 = $("#regPasswordConfirm").val() as string;
+        if (this.credentials.password !== password2) {
             this.errors.push("Passwords are not the same.");
         }
         if (this.credentials.password.length < 8 || this.credentials.password.match(/^[a-zA-Z0-9]+$/) === null) {
@@ -34,7 +34,7 @@ export class RegisterScene extends Scene {
             try {
                 const result = await $.ajax({
                     method: "POST",
-                    url: "/api/register",
+                    url: "/api/check/register",
                     data: JSON.stringify({}),
                     headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password + ":" + this.credentials.difficulty) },
                     processData: false,
