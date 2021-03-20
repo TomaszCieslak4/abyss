@@ -60,11 +60,20 @@ main input[type="password"] {
 	margin-top: 5px;
 }
 
+#regPassword {
+	margin-bottom: 5px;
+}
+
+#regPasswordConfirm {
+	margin-bottom: 20px;
+}
+
 main input[type="text"]:focus,
 main input[type="password"]:focus {
 	outline: none;
 	border: 2px solid #335C90;
 }
+
 
 main .primaryButton {
 	height: 60px;
@@ -78,6 +87,16 @@ main .primaryButton {
 	border-radius: 5px;
 	border: 2px solid transparent;
 	transition: border 0.3s ease;
+}
+
+#registerErr, #loginErr, #menuErr, #updateErr {
+	color: #FF6161;
+}
+
+
+main .delete {
+	background: #ad2222;
+	color: #fff;
 }
 
 main .primaryButton:hover,
@@ -111,7 +130,7 @@ main .secondaryButton:focus {
 	vertical-align:middle;
 }
 
-img {
+.logo {
 	padding: 10px;
 	width: 150px;
 	user-select: none;
@@ -131,7 +150,7 @@ img {
     margin:auto;
 }
 
-.gradborder:first-child:before {
+.gradborder:before {
     content:'';
     position:absolute;
     width:100%;
@@ -150,6 +169,10 @@ canvas{
 	z-index: -1;
 }
 
+.icon-space {
+	margin-top: 2px;
+}
+
 .ui_game {
 	position: absolute;
 	bottom: 0;
@@ -165,24 +188,40 @@ canvas{
 	-khtml-user-select: none;
 	-webkit-user-select: none;
 	-o-user-select: none;
-	backdrop-filter: blur(3px);
-	-webkit-backdrop-filter: blur(3px);
-	width: 200px;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	display: grid;
+	grid-template-columns: 20px 100px 25px;
+	grid-gap: 5px;
 }
 
-.material-icons.md-18 {
-	font-size: 18px; 
-}
-
-.icons {
-	display: inline;
+.right{
+	text-align: right;
 }
 
 span {
 	display: block;
-	padding: 5px 0;
+	padding: 2px 0;
 }
 
+table {
+	border-collapse: collapse;
+	width: 90%;
+	margin: auto;
+  }
+  
+th, td {
+	padding: 8px;
+	text-align: left;
+	border-bottom: 2px solid #2c2c2c;
+
+  }
+
+.middle {
+	text-align: center;
+	vertical-align: middle;
+}
+  
 /* LAYOUT */
 .container {
 	display: grid;
@@ -258,5 +297,9 @@ footer p {
 
 	nav, aside {
 		margin: 0;
+	}
+
+	.center-screen {
+		border: none;
 	}
 }

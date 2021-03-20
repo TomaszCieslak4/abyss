@@ -1,11 +1,20 @@
 export class LoggedUser {
-    constructor() {
-        this.userName = '';
+    static setUser(newUsername) {
+        LoggedUser.username = newUsername;
     }
-    setUser(newUser) {
-        this.userName = newUser;
+    static getUser() {
+        return LoggedUser.username;
     }
-    getUser() {
-        return this.userName;
+    static setDifficulty(newDifficulty) {
+        LoggedUser.difficulty = newDifficulty;
+    }
+    static getDifficulty() {
+        return LoggedUser.difficulty;
+    }
+    static setPassword(password) {
+        LoggedUser.password = password;
+    }
+    static getPassword() {
+        return LoggedUser.password;
     }
 }

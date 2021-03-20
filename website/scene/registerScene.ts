@@ -1,5 +1,5 @@
-import { Scene } from "./scene.js";
-import { SceneManager } from "./sceneManager.js";
+import { Scene } from "../engine/core/scene.js";
+import { SceneManager } from "../engine/core/sceneManager.js";
 
 export class RegisterScene extends Scene {
     credentials = { "username": "", "password": "", "difficulty": "" };
@@ -34,7 +34,7 @@ export class RegisterScene extends Scene {
             try {
                 const result = await $.ajax({
                     method: "POST",
-                    url: "/api/check/register",
+                    url: "/api/nouser/register",
                     data: JSON.stringify({}),
                     headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password + ":" + this.credentials.difficulty) },
                     processData: false,
@@ -67,5 +67,14 @@ export class RegisterScene extends Scene {
         $("#ui_register").hide();
         const myNode = document.getElementById("registerErr")!;
         myNode.innerHTML = '';
+
+        //Set text fields to empty
+        $("#regUsername").val("");
+        $("#regPassword").val("");
+        $("#regPasswordConfirm").val("");
+        $("#tos").prop("checked", false);
+        $("#regEasy").prop("checked", false);
+        $("#regMedium").prop("checked", false);
+        $("#regHard").prop("checked", false);
     }
 }

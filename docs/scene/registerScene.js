@@ -1,9 +1,9 @@
-import { Scene } from "./scene.js";
-import { SceneManager } from "./sceneManager.js";
+import { Scene } from "../engine/core/scene.js";
+import { SceneManager } from "../engine/core/sceneManager.js";
 export class RegisterScene extends Scene {
     constructor() {
         super(...arguments);
-        this.credentials = { "username": "", "password": "", "password2": "", "difficulty": "" };
+        this.credentials = { "username": "", "password": "", "difficulty": "" };
         this.errors = [];
     }
     async register() {
@@ -15,10 +15,10 @@ export class RegisterScene extends Scene {
         this.credentials = {
             "username": $("#regUsername").val(),
             "password": $("#regPassword").val(),
-            "password2": $("#regPasswordConfirm").val(),
             "difficulty": $(".difficulty:checked").val()
         };
-        if (this.credentials.password !== this.credentials.password2) {
+        let password2 = $("#regPasswordConfirm").val();
+        if (this.credentials.password !== password2) {
             this.errors.push("Passwords are not the same.");
         }
         if (this.credentials.password.length < 8 || this.credentials.password.match(/^[a-zA-Z0-9]+$/) === null) {
@@ -35,7 +35,7 @@ export class RegisterScene extends Scene {
             try {
                 const result = await $.ajax({
                     method: "POST",
-                    url: "/api/register",
+                    url: "/api/nouser/register",
                     data: JSON.stringify({}),
                     headers: { "Authorization": "Basic " + btoa(this.credentials.username + ":" + this.credentials.password + ":" + this.credentials.difficulty) },
                     processData: false,
@@ -67,5 +67,13 @@ export class RegisterScene extends Scene {
         $("#ui_register").hide();
         const myNode = document.getElementById("registerErr");
         myNode.innerHTML = '';
+        //Set text fields to empty
+        $("#regUsername").val("");
+        $("#regPassword").val("");
+        $("#regPasswordConfirm").val("");
+        $("#tos").prop("checked", false);
+        $("#regEasy").prop("checked", false);
+        $("#regMedium").prop("checked", false);
+        $("#regHard").prop("checked", false);
     }
 }

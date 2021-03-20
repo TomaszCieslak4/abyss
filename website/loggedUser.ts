@@ -1,15 +1,30 @@
 export class LoggedUser {
-    private userName: string;
+    // Store the password (not ideal)... but other methods are out of scope
+    private static username: string;
+    private static password: string;
+    private static difficulty: string;
 
-    constructor() {
-        this.userName = '';
+    public static setUser(newUsername: string) {
+        LoggedUser.username = newUsername;
     }
 
-    public setUser(newUser: string) {
-        this.userName = newUser;
+    public static getUser() {
+        return LoggedUser.username;
     }
 
-    public getUser() {
-        return this.userName;
+    public static setDifficulty(newDifficulty: string) {
+        LoggedUser.difficulty = newDifficulty;
+    }
+
+    public static getDifficulty() {
+        return LoggedUser.difficulty;
+    }
+
+    public static setPassword(password: string) {
+        LoggedUser.password = password;
+    }
+
+    public static getPassword() {
+        return LoggedUser.password;
     }
 }

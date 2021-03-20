@@ -1,5 +1,6 @@
-import { Scene } from "./scene.js";
-import { SceneManager } from "./sceneManager.js";
+import { Scene } from "../engine/core/scene.js";
+import { SceneManager } from "../engine/core/sceneManager.js";
+import { LoggedUser } from "../loggedUser.js";
 
 export class LoginScene extends Scene {
     credentials = { "username": "", "password": "" };
@@ -31,7 +32,8 @@ export class LoginScene extends Scene {
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 });
-                SceneManager.user.setUser(this.credentials.username);
+                LoggedUser.setUser(this.credentials.username);
+                LoggedUser.setPassword(this.credentials.password);
                 SceneManager.setScene(2);
             } catch (error) {
                 console.log("fail " + error.status + " " + JSON.stringify(error.responseJSON));
@@ -59,5 +61,9 @@ export class LoginScene extends Scene {
         $("#ui_login").hide();
         const myNode = document.getElementById("loginErr")!;
         myNode.innerHTML = '';
+
+        //Set text fields to empty
+        $("#username").val("");
+        $("#password").val("");
     }
 }

@@ -1,37 +1,26 @@
-import { GameObject } from "../core/gameObject.js";
-import { BoxCollider } from "../physics/boxCollider.js";
-import { CircleCollider } from "../physics/circleCollider.js";
-import { RigidBody } from "../physics/rigidbody.js";
-import { CircleRenderer } from "../renderer/circleRenderer.js";
-import { SpriteRenderer } from "../renderer/spriteRenderer.js";
-import { AIPlayer } from "../script/aiPlayer.js";
-import { Health } from "../script/health.js";
-import { HumanPlayer } from "../script/humanPlayer.js";
-import { Player } from "../script/player.js";
-import { Weapon } from "../script/weapon.js";
-import { Vec2 } from "../util/vector.js";
-import { WeaponPrefab } from "./weaponPrefab.js";
+import { GameObject } from "../engine/core/gameObject.js";
+import { CircleCollider } from "../engine/physics/circleCollider.js";
+import { CircleRenderer } from "../engine/renderer/circleRenderer.js";
+import { AIPlayer } from "../scripts/aiPlayer.js";
+import { Weapon } from "../scripts/weapon.js";
+import { Color } from "../engine/util/color.js";
+import { Vec2 } from "../engine/util/vector.js";
+import { ARPrefab } from "./weapons/arPrefab.js";
+import { PlayerPrefab } from "./playerPrefab.js";
+import { Health } from "../scripts/health.js";
 
-export class AIPlayerPrefab extends GameObject {
-    constructor() {
-        super();
-        this.name = "AI Player";
-        this.tag = "Player";
-
-        this.addComponent(Health);
-
-        let visual = this.instantiate(GameObject, null, new Vec2(2, 2), null, this.transform);
-        visual.addComponent(CircleRenderer);
-        visual.addComponent(CircleCollider);
-
-        this.addComponent(RigidBody);
-
+export class AIPlayerPrefab extends PlayerPrefab {
+    load() {
         let detectionTrigger = this.instantiate(GameObject, Vec2.zero(), new Vec2(20, 20), null, this.transform);
         let collider = detectionTrigger.addComponent(CircleCollider);
         collider.isTrigger = true;
+        // let rangeIndicator = detectionTrigger.addComponent(CircleRenderer);
+        // rangeIndicator.color = new Color(255, 0, 0, 0.2);
 
-        let player = this.addComponent(AIPlayer);
-        let weapon = this.instantiate(WeaponPrefab, new Vec2(0.6, 0.9), null, -Math.PI / 12, this.transform);
-        player.weapon = weapon.getComponent(Weapon);
+        this.addComponent(AIPlayer);
+
+        super.load();
+        let health = this.getComponent(Health)!;
+        health.deathScore = 50;
     }
 }
