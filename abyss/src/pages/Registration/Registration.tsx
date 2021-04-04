@@ -11,6 +11,7 @@ import {
 } from "@material-ui/core";
 import React, { Component } from "react";
 import { Link } from "react-router-dom";
+import { SERVERIP } from "../../config";
 
 interface MyState {
   username: string;
@@ -18,6 +19,8 @@ interface MyState {
   confirmPassword: string;
   difficulty: string;
   checkbox: string;
+  errors: string[];
+  success: string[];
 }
 class Registration extends Component<{}, MyState> {
   constructor(props: any) {
@@ -28,9 +31,11 @@ class Registration extends Component<{}, MyState> {
       confirmPassword: "",
       difficulty: "",
       checkbox: "",
+      errors: [],
+      success: [],
     };
     this.handleChange = this.handleChange.bind(this);
-    // this.handleSubmit = this.handleSubmit.bind(this);
+    this.register = this.register.bind(this);
   }
 
   // componentDidMount() {}
@@ -43,10 +48,78 @@ class Registration extends Component<{}, MyState> {
     });
   }
 
+  async register() {
+    let errors: string[] = [];
+    let success: string[] = [];
+
+    if (this.state.checkbox === "") {
+      errors.push("Please select the terms of service.");
+    }
+    if (this.state.password !== this.state.confirmPassword) {
+      errors.push("Passwords are not the same.");
+    }
+    if (
+      this.state.password.length < 8 ||
+      this.state.password.match(/^[a-zA-Z0-9]+$/) === null
+    ) {
+      errors.push(
+        "Passwords should be betweeen at least 8 characters or numbers."
+      );
+    }
+    if (
+      this.state.username.length < 3 ||
+      this.state.username.length > 20 ||
+      this.state.username.match(/^[a-zA-Z0-9]+$/) === null
+    ) {
+      errors.push("Username should be between 3-20 characters or numbers.");
+    }
+    if (this.state.difficulty === "") {
+      errors.push("Please select preferred difficulty.");
+    }
+    if (this.state.username === "") {
+      errors.push("Please enter a username.");
+    }
+    if (this.state.password === "") {
+      errors.push("Please enter a password.");
+    }
+    if (errors.length === 0) {
+      const result = await fetch(SERVERIP + "/api/nouser/register", {
+        method: "POST",
+        headers: {
+          Authorization:
+            "Basic " +
+            btoa(
+              this.state.username +
+                ":" +
+                this.state.password +
+                ":" +
+                this.state.difficulty
+            ),
+        },
+      });
+      var body = await result.json();
+      if (result.status === 200) {
+        success.push(body.message);
+      } else {
+        errors.push(body.error);
+      }
+    }
+    if (errors.length > 0 || success.length > 0) {
+      this.setState({
+        errors: errors,
+        success: success,
+      });
+    }
+  }
+
+  handleSubmit = (e: any) => {
+    e.preventDefault();
+  };
+
   render() {
     return (
       <div className="gradborder">
-        <form className="center-screen">
+        <form className="center-screen" onSubmit={this.handleSubmit}>
           <h2>Sign Up</h2>
           <div className="input-wrapper">
             <TextField
@@ -71,7 +144,7 @@ class Registration extends Component<{}, MyState> {
           </div>
           <div className="input-wrapper">
             <TextField
-              name="confirmpassword"
+              name="confirmPassword"
               onChange={this.handleChange}
               label="Confirm Password"
               type="password"
@@ -123,10 +196,22 @@ class Registration extends Component<{}, MyState> {
               />
             }
           />
-          <Button variant="contained">Register Account</Button>
+          <Button type="submit" variant="contained" onClick={this.register}>
+            Register Account
+          </Button>
           <Link to="/">
             <Button variant="contained">Already have an account? Log In</Button>
           </Link>
+          <div id="err">
+            {this.state.errors.map((item, index) => (
+              <p key={index}>{item}</p>
+            ))}
+          </div>
+          <div id="success">
+            {this.state.success.map((item, index) => (
+              <p key={index}>{item}</p>
+            ))}
+          </div>
         </form>
       </div>
     );

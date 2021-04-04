@@ -8,6 +8,9 @@ import { Pool } from "pg";
 const port = 8000;
 let app = express();
 
+var cors = require('cors')
+app.use(cors())
+
 const pool = new Pool({
 	user: 'webdbuser',
 	host: 'localhost',
@@ -279,16 +282,16 @@ app.put('/api/auth/updatescore', async (req, res) => {
 	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
 	try {
 		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
-
+		
 		let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString()
 		m = /^(.*):(.*):(.*):(.*)$/.exec(user_pass);
-
+		
 		let username = m ? m[1] : "";
 		let table = m ? m[3] : "";
 		let score = m ? m[4] : "";
-
+		
 		console.log(username, " ", table, " ", score)
-
+		
 		let addnum = Number(score);
 		if (addnum === NaN || addnum < 0) {
 			return res.status(401).json({ error: 'Score is invalid.' });
@@ -296,6 +299,7 @@ app.put('/api/auth/updatescore', async (req, res) => {
 		if (table === "") {
 			return res.status(401).json({ error: 'Please select valid table.' });
 		}
+		//TODO: Only update Score if larger than previous
 		if (table === "easy") {
 			let query = 'UPDATE easyScore SET score=$2 WHERE username=$1;';
 			let result = await pool.query(query, [username, addnum]);
@@ -378,9 +382,9 @@ app.post('/api/auth/test', function (req, res) {
 	res.json({ "message": "got to /api/auth/test" });
 });
 
-app.use('/', express.static('../docs'));
+app.use('/', express.static('../abyss'));
 
-app.listen(port, "localhost", function () {
+app.listen(port, function () {
 	console.log('Example app listening on port ' + port);
 });
 

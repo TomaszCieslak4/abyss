@@ -10,6 +10,8 @@ const express_1 = __importDefault(require("express"));
 const pg_1 = require("pg");
 const port = 8000;
 let app = express_1.default();
+var cors = require('cors');
+app.use(cors());
 const pool = new pg_1.Pool({
     user: 'webdbuser',
     host: 'localhost',
@@ -324,7 +326,7 @@ app.post('/api/auth/test', function (req, res) {
     res.status(200);
     res.json({ "message": "got to /api/auth/test" });
 });
-app.use('/', express_1.default.static('../docs'));
-app.listen(port, "localhost", function () {
+app.use('/', express_1.default.static('../abyss'));
+app.listen(port, function () {
     console.log('Example app listening on port ' + port);
 });
