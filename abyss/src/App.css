@@ -82,12 +82,12 @@ main input[type="password"]:focus {
   border: 2px solid #335c90;
 }
 
-main .primaryButton {
+button {
   height: 60px;
   width: 100%;
   max-width: 250px;
   border: 2px solid #403e45;
-  background: #fff;
+  background: red;
   font-size: 16px;
   font-weight: 500;
   margin: 10px 0px;

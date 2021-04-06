@@ -1,7 +1,8 @@
 import { Button, TextField } from "@material-ui/core";
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
+import { RouteComponentProps } from "react-router-dom";
 import "../../App.css";
+import "./Login.css";
 import { SERVERIP } from "../../config";
 
 interface MyState {
@@ -9,9 +10,10 @@ interface MyState {
   password: string;
   errors: string[];
 }
+interface MyProp extends RouteComponentProps<any> {}
 
-class Login extends Component<{}, MyState> {
-  constructor(props: any) {
+class Login extends Component<MyProp, MyState> {
+  constructor(props: MyProp) {
     super(props);
     this.state = {
       username: "",
@@ -49,7 +51,6 @@ class Login extends Component<{}, MyState> {
       var body = await result.json();
       if (result.status === 200) {
         localStorage.setItem("username", this.state.username);
-        localStorage.setItem("password", this.state.password);
         //@ts-ignore
         this.props.history.push("/menu");
       } else {
@@ -77,7 +78,7 @@ class Login extends Component<{}, MyState> {
               onChange={this.handleChange}
               label="Username"
               type="text"
-              variant="filled"
+              variant="outlined"
               className="textfield"
             />
           </div>
@@ -92,12 +93,22 @@ class Login extends Component<{}, MyState> {
               className="textfield"
             />
           </div>
-          <Button type="submit" variant="contained" onClick={this.login}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            onClick={this.login}
+          >
             Log in
           </Button>
-          <Link to="/Registration">
-            <Button variant="contained">Don't have an account? Register</Button>
-          </Link>
+
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => this.props.history.push("/Registration")}
+          >
+            Don't have an account? Register
+          </Button>
           <div id="err">
             {this.state.errors.map((item, index) => (
               <p key={index}>{item}</p>

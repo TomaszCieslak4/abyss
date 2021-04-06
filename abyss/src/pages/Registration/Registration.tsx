@@ -10,7 +10,7 @@ import {
   TextField,
 } from "@material-ui/core";
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
+import { RouteComponentProps } from "react-router-dom";
 import { SERVERIP } from "../../config";
 
 interface MyState {
@@ -22,8 +22,10 @@ interface MyState {
   errors: string[];
   success: string[];
 }
-class Registration extends Component<{}, MyState> {
-  constructor(props: any) {
+
+interface MyProp extends RouteComponentProps<any> {}
+class Registration extends Component<MyProp, MyState> {
+  constructor(props: MyProp) {
     super(props);
     this.state = {
       username: "",
@@ -74,7 +76,7 @@ class Registration extends Component<{}, MyState> {
       errors.push("Username should be between 3-20 characters or numbers.");
     }
     if (this.state.difficulty === "") {
-      errors.push("Please select preferred difficulty.");
+      errors.push("Please select current skill level.");
     }
     if (this.state.username === "") {
       errors.push("Please enter a username.");
@@ -154,32 +156,30 @@ class Registration extends Component<{}, MyState> {
             />
           </div>
           <FormControl component="fieldset">
-            <FormLabel component="legend">
-              Please select your preferred difficulty:
-            </FormLabel>
+            <FormLabel component="legend">What is you skill level?</FormLabel>
             <RadioGroup row>
               <FormControlLabel
                 name="difficulty"
                 labelPlacement="top"
-                value="easy"
+                value="noobie"
                 control={<Radio />}
-                label="Easy"
+                label="Noobie"
                 onChange={this.handleChange}
               />
               <FormControlLabel
                 name="difficulty"
-                value="medium"
+                value="meh"
                 control={<Radio />}
-                label="Medium"
+                label="Meh"
                 labelPlacement="top"
                 onChange={this.handleChange}
               />
               <FormControlLabel
                 name="difficulty"
                 labelPlacement="top"
-                value="hard"
+                value="pro"
                 control={<Radio />}
-                label="Hard"
+                label="Pro"
                 onChange={this.handleChange}
               />
             </RadioGroup>
@@ -199,9 +199,12 @@ class Registration extends Component<{}, MyState> {
           <Button type="submit" variant="contained" onClick={this.register}>
             Register Account
           </Button>
-          <Link to="/">
-            <Button variant="contained">Already have an account? Log In</Button>
-          </Link>
+          <Button
+            variant="contained"
+            onClick={() => this.props.history.push("/")}
+          >
+            Already have an account? Log In
+          </Button>
           <div id="err">
             {this.state.errors.map((item, index) => (
               <p key={index}>{item}</p>

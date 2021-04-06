@@ -1,28 +1,26 @@
 import { Button } from "@material-ui/core";
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
+import { RouteComponentProps } from "react-router-dom";
 import { SERVERIP } from "../../config";
 
 interface MyState {
   gameState: string;
-  difficulty: string;
   errors: string[];
   topTen: any;
-  easyScore: string;
-  mediumScore: string;
-  hardScore: string;
+  highScore: string;
+  lastScore: string;
 }
-class Menu extends Component<{}, MyState> {
-  constructor(props: any) {
+interface MyProp extends RouteComponentProps<any> {}
+
+class Menu extends Component<MyProp, MyState> {
+  constructor(props: MyProp) {
     super(props);
     this.state = {
       gameState: "", //TODO: CHANGE GAME STATE DEPENDING ON WIN/LOSS/SIGNIN
-      difficulty: "",
       errors: [],
       topTen: [],
-      easyScore: "",
-      mediumScore: "",
-      hardScore: "",
+      highScore: "",
+      lastScore: "",
     };
   }
 
@@ -30,23 +28,21 @@ class Menu extends Component<{}, MyState> {
     this.getStats = this.getStats.bind(this);
     this.getStats();
   }
+
   async getStats() {
     let errors: string[] = [];
-    let difficulty = this.state.difficulty;
     let topTen = this.state.topTen;
-    let easyScore = this.state.easyScore;
-    let mediumScore = this.state.mediumScore;
-    let hardScore = this.state.hardScore;
+    let highScore = this.state.highScore;
+    let lastScore = this.state.lastScore;
     let userStorage = localStorage.getItem("username");
     let username = userStorage ? userStorage : "";
-    // let password = localStorage.getItem("password");
 
     // Get user info
     if (username === "") {
       errors.push("Cannot retrieve information, user is not logged in.");
     }
     if (errors.length === 0) {
-      const result = await fetch(SERVERIP + "/api/user/userinfo", {
+      const result = await fetch(SERVERIP + "/api/user/userscores", {
         method: "GET",
         headers: {
           Authorization: "Basic " + btoa(username),
@@ -54,31 +50,16 @@ class Menu extends Component<{}, MyState> {
       });
       var body = await result.json();
       if (result.status === 200) {
-        let resultDifficulty = body.difficulty;
-        if (
-          resultDifficulty !== "easy" &&
-          resultDifficulty !== "medium" &&
-          resultDifficulty !== "hard"
-        ) {
-          errors.push("Error obtaining user difficulty.");
-        } else {
-          localStorage.setItem("difficulty", resultDifficulty);
-          difficulty = resultDifficulty;
-          easyScore = body.easyScore;
-          mediumScore = body.mediumScore;
-          hardScore = body.hardScore;
-        }
+        highScore = body.highScore;
+        lastScore = body.lastScore;
       } else {
         errors.push(body.error);
       }
     }
     if (errors.length === 0) {
-      // Get top ten leaderboards for user's difficulty
+      // Get top ten leaderboards
       const result = await fetch(SERVERIP + "/api/topten", {
         method: "GET",
-        headers: {
-          Authorization: "Basic " + btoa(difficulty),
-        },
       });
       var body = await result.json();
       if (result.status === 200) {
@@ -87,15 +68,12 @@ class Menu extends Component<{}, MyState> {
         errors.push(body.error);
       }
     }
-    // console.log(errors, topTen, difficulty);
 
     this.setState({
       errors: errors,
       topTen: topTen,
-      difficulty: difficulty,
-      easyScore: easyScore,
-      mediumScore: mediumScore,
-      hardScore: hardScore,
+      highScore: highScore,
+      lastScore: lastScore,
     });
   }
 
@@ -112,18 +90,16 @@ class Menu extends Component<{}, MyState> {
           <table id="mystats">
             <tbody>
               <tr>
-                <th className="middle">Easy</th>
-                <th className="middle">Medium</th>
-                <th className="middle">Hard</th>
+                <th className="middle">Last Score</th>
+                <th className="middle">Highscore</th>
               </tr>
               <tr>
-                <td className="middle">{this.state.easyScore}</td>
-                <td className="middle">{this.state.mediumScore}</td>
-                <td className="middle">{this.state.hardScore}</td>
+                <td className="middle">{this.state.lastScore}</td>
+                <td className="middle">{this.state.highScore}</td>
               </tr>
             </tbody>
           </table>
-          <h2>{this.state.difficulty.toUpperCase()} Leaderboard</h2>
+          <h2>Leaderboard</h2>
           <table id="leaderboard">
             <tbody>
               <tr>
@@ -135,7 +111,7 @@ class Menu extends Component<{}, MyState> {
                 this.state.topTen.rows.map((item) => (
                   <tr>
                     <td className="middle">{item["username"]}</td>
-                    <td className="middle">{item["score"]}</td>
+                    <td className="middle">{item["highscore"]}</td>
                   </tr>
                 ))
               }
@@ -143,12 +119,22 @@ class Menu extends Component<{}, MyState> {
           </table>
           <h2>Menu</h2>
           <Button variant="contained">Start New Game</Button>
-          <Link to="/Profile">
-            <Button variant="contained">Update Gamemode & Profile</Button>
-          </Link>
-          <Link to="/" onClick={() => localStorage.clear()}>
-            <Button variant="contained">Logout</Button>
-          </Link>
+          <Button
+            variant="contained"
+            onClick={() => this.props.history.push("/Profile")}
+          >
+            Update Gamemode & Profile
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              localStorage.clear();
+              this.props.history.push("/");
+            }}
+          >
+            Logout
+          </Button>
+
           <div id="err">
             {this.state.errors.map((item, index) => (
               <p key={index}>{item}</p>
