@@ -12,14 +12,14 @@ void drawRandomPixels()
 
 int main(int argc, char *argv[])
 {
-    start();
+    // start();
 
-#ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(loop, 0, 1);
-#else
-    while (1)
-    {
-        drawRandomPixels();
-    }
-#endif
+    // #ifdef __EMSCRIPTEN__
+    //     // emscripten_set_main_loop(loop, 0, 1);
+    // #else
+    //     while (1)
+    //     {
+    //         drawRandomPixels();
+    //     }
+    // #endif
 }

@@ -75,3 +75,13 @@
 //     }
 //     return true;
 // }
+
+// std::vector<Vec2> genRectVerts(Mat3 &obj)
+// {
+//     std::vector<Vec2> verts;
+//     verts.push_back(obj * Vec2(-0.5, -0.5));
+//     verts.push_back(obj * Vec2(0.5, -0.5));
+//     verts.push_back(obj * Vec2(0.5, 0.5));
+//     verts.push_back(obj * Vec2(-0.5, 0.5));
+//     return verts;
+// }

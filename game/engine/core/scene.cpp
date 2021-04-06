@@ -16,9 +16,9 @@ int GetId()
 typedef unsigned int EntityIndex;
 typedef unsigned int EntityVersion;
 typedef unsigned long long EntityID;
-const int MAX_COMPONENETS = 32;
-const int MAX_ENTITIES = 3000;
-typedef std::bitset<MAX_COMPONENETS> ComponentMask;
+constexpr int MAX_COMPONENTS = 32;
+constexpr int MAX_ENTITIES = 3000;
+typedef std::bitset<MAX_COMPONENTS> ComponentMask;
 
 inline EntityID CreateEntityId(EntityIndex index, EntityVersion version)
 {

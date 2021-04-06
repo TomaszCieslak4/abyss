@@ -19,17 +19,6 @@
         } 
     </style>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-
-    <script>
-        window.canvas = document.getElementById("canvas");
-        window.context = window.canvas.getContext("2d");
-    </script>
     <script async type="text/javascript" src="main.js"></script>
-    <script>
-        // onMouseClick = Module.cwrap('onMouseClick', 'void', ['number']);
-        window.canvas.onmousedown = (evt)=>{
-            Module._onMouseClick(evt.clientX, evt.clientY);
-        };
-    </script>
 </body>
 </html>

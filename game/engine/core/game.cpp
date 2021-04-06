@@ -9,62 +9,43 @@
 #include <vector>
 #include <cmath>
 
-enum Mode
+// Radius
+constexpr int playRadius = 50;
+constexpr int boundryRadius = 20;
+constexpr int total = boundryRadius + playRadius;
+constexpr int minDist = 10;
+
+enum Spawn
 {
-    easy,
-    medium,
-    hard,
+    ammo,
+    health,
+    crate,
+    wall,
 };
 
 void createBoundry(Scene &scene, EntityID root, int posX, int posY, int scaleX, int scaleY);
-void spawnRandomItem(Scene &scene, EntityID root, Vec2 pos);
+void spawnEntityRand(Scene &scene, EntityID root, Spawn type, int numToSpawn = 1);
 
 inline double lerp(double min, double max, double t) { return min + (max - min) * t; }
 inline double drandom() { return (double)std::rand() / (double)RAND_MAX; }
 
-void loadScene(Scene &scene, EntityID root, Mode mode)
+void loadScene(Scene &scene, EntityID root)
 {
-    int numItemPrefab = 0;
-    int numAIPrefab = 0;
-    int persuitRange = 0;
-    int watchRange = 0;
-
-    // Change opitions depending on difficulty
-    switch (mode)
-    {
-        case Mode::easy:
-            numItemPrefab = 10;
-            numAIPrefab = 5;
-            persuitRange = 15;
-            watchRange = 5;
-            break;
-        case Mode::medium:
-            numItemPrefab = 15;
-            numAIPrefab = 10;
-            persuitRange = 20;
-            watchRange = 5;
-            break;
-        case Mode::hard:
-            numItemPrefab = 25;
-            numAIPrefab = 15;
-            persuitRange = 30;
-            watchRange = 5;
-            break;
-    }
+    int numItemPrefab = 40;
+    int numAIPrefab = 15;
+    int persuitRange = 30;
+    int watchRange = 5;
 
     // Camera
     {
         EntityID camera = scene.NewEntity();
         Transform *pTransform = scene.Assign<Transform>(camera);
+        scene.Assign<ObjectToWorld>(camera);
         scene.Assign<Camera>(camera);
         pTransform->pos = Vec2(0, 0);
         pTransform->scale = Vec2(30, 30);
+        setParent(scene, camera, root);
     }
-
-    // Radius
-    int playRadius = 50;
-    int boundryRadius = 20;
-    int total = boundryRadius + playRadius;
 
     // Create Boundries
     createBoundry(scene, root, 0, total, 2 * total + 2 * boundryRadius, 2 * boundryRadius);
@@ -74,56 +55,11 @@ void loadScene(Scene &scene, EntityID root, Mode mode)
 
     // Spawn Random Item
     {
-        int minDist = 10;
-        int spawned = 0;
-        for (int i = 0; i < 10000 && spawned < numItemPrefab; i++)
+        std::array<int, 4> counts = {8, 8, 10, 5};
+        for (int i = 0; i < counts.size(); i++)
         {
-            Vec2 pos = Vec2(lerp(minDist - playRadius, playRadius - minDist, drandom()), lerp(minDist - playRadius, playRadius - minDist, drandom()));
-            bool safe = true;
-            for (EntityID ent : SceneView<Transform, Collider>(scene))
-            {
-                Transform *pTransform = scene.Get<Transform>(ent);
-                if (pTransform->pos.sqr_dist(pos) < minDist * minDist)
-                {
-                    safe = false;
-                    break;
-                }
-            }
-            if (!safe)
-                continue;
-            spawnRandomItem(scene, root, pos);
-            spawned++;
+            spawnEntityRand(scene, root, (Spawn)i, counts[i]);
         }
-    }
-
-    {
-        EntityID wall = scene.NewEntity();
-        Transform *pTransform = scene.Assign<Transform>(wall);
-        scene.Assign<ObjectToWorld>(wall); // Add with transform
-        scene.Assign<Rect>(wall);
-        scene.Assign<Renderer>(wall);
-        scene.Assign<Rigidbody>(wall);
-        scene.Assign<Collider>(wall);
-        pTransform->pos = Vec2(1, 4);
-        pTransform->scale = Vec2(4, 4);
-
-        Color *pColor = scene.Assign<Color>(wall);
-        *pColor = {255, 255, 255};
-        setParent(scene, wall, root);
-    }
-    {
-        EntityID wall = scene.NewEntity();
-        Transform *pTransform = scene.Assign<Transform>(wall);
-        scene.Assign<ObjectToWorld>(wall); // Add with transform
-        scene.Assign<Rect>(wall);
-        scene.Assign<Renderer>(wall);
-        scene.Assign<Collider>(wall);
-        pTransform->pos = Vec2(0, 3);
-        pTransform->scale = Vec2(4, 4);
-
-        Color *pColor = scene.Assign<Color>(wall);
-        *pColor = {255, 255, 255};
-        setParent(scene, wall, root);
     }
 
     // Player
@@ -133,6 +69,7 @@ void loadScene(Scene &scene, EntityID root, Mode mode)
         scene.Assign<ObjectToWorld>(player);
         scene.Assign<User>(player);
         scene.Assign<Rigidbody>(player);
+        scene.Assign<Health>(player);
         pTransform->pos = Vec2(0, -1);
         setParent(scene, player, root);
     }
@@ -152,28 +89,58 @@ void loadScene(Scene &scene, EntityID root, Mode mode)
         setParent(scene, playerVisual, player);
     }
 
+    // Health Visual Background
     {
-        EntityID groundDrop = groundDropPrefab(scene, root, Vec2(0, -4));
-        attachSmgPrefab(scene, groundDrop);
+        EntityID healthVisual = scene.NewEntity();
+        Transform *pTransform = scene.Assign<Transform>(healthVisual);
+        scene.Assign<ObjectToWorld>(healthVisual);
+        scene.Assign<Renderer>(healthVisual);
+        scene.Assign<Outline>(healthVisual);
+        Arc *pArc = scene.Assign<Arc>(healthVisual);
+        pArc->start_angle = M_PI_2 * 1.05;
+        pArc->end_angle = 3 * M_PI_2 * 0.95;
+        Color *pColor = scene.Assign<Color>(healthVisual);
+        pTransform->pos = Vec2(0, 0);
+        pTransform->scale = Vec2(2.3, 2.3);
+        pColor->r = 255;
+        setParent(scene, healthVisual, player);
     }
 
+    // Health Visual
     {
-        EntityID groundDrop = groundDropPrefab(scene, root, Vec2(2, 4));
-        attachArPrefab(scene, groundDrop);
+        EntityID healthVisual = scene.NewEntity();
+        Transform *pTransform = scene.Assign<Transform>(healthVisual);
+        scene.Assign<ObjectToWorld>(healthVisual);
+        scene.Assign<Renderer>(healthVisual);
+        scene.Assign<Outline>(healthVisual);
+        Arc *pArc = scene.Assign<Arc>(healthVisual);
+        pArc->start_angle = M_PI_2 * 1.05;
+        pArc->end_angle = 3 * M_PI_2 * 0.95;
+        Color *pColor = scene.Assign<Color>(healthVisual);
+        pTransform->pos = Vec2(0, 0);
+        pTransform->scale = Vec2(2.3, 2.3);
+        pColor->g = 255;
+        setParent(scene, healthVisual, player);
     }
 
+    EntityID weaponSpawnpoint = scene.NewEntity();
+    // Player Weapon Spawnpoint
     {
-        EntityID groundDrop = groundDropPrefab(scene, root, Vec2(0, -2));
-        attachSniperPrefab(scene, groundDrop);
-    }
-    spawnAmmoPackPrefab(scene, root, Vec2(-4, 0));
-    spawnHealthPackPrefab(scene, root, Vec2(-6, 0));
-
-    // Weapon Prefab
-    {
-        EntityID smg = attachSmgPrefab(scene, player);
-        Transform *pTransform = scene.Get<Transform>(smg);
+        Transform *pTransform = scene.Assign<Transform>(weaponSpawnpoint);
+        scene.Assign<ObjectToWorld>(weaponSpawnpoint);
         pTransform->pos = Vec2(1, 0.45);
+        setParent(scene, weaponSpawnpoint, player);
+    }
+
+    // Player Weapon Prefab
+    {
+        EntityID smg = attachSmgPrefab(scene, weaponSpawnpoint);
+    }
+
+    // Player Weapon Prefab
+    {
+        EntityID groundDrop = groundDropPrefab(scene, root, Vec2(10, 10));
+        attachSmgPrefab(scene, groundDrop);
     }
 }
 
@@ -196,32 +163,46 @@ void createBoundry(Scene &scene, EntityID root, int posX, int posY, int scaleX, 
     setParent(scene, boundry, root);
 }
 
-void spawnRandomItem(Scene &scene, EntityID root, Vec2 pos)
+void spawnEntityRand(Scene &scene, EntityID root, Spawn type, int numToSpawn)
 {
-    int num = std::round((drandom() * 10));
-    switch (num)
+    int countInd = 0;
+
+    for (int i = 0; i < 10000 && countInd < numToSpawn; i++)
     {
-        case 0:
-        case 1:
-        case 2:
-            spawnAmmoPackPrefab(scene, root, pos);
-            break;
-        case 3:
-        case 4:
-        case 5:
-            spawnCratePrefab(scene, root, pos);
-            break;
-        case 6:
-        case 7:
-            spawnHealthPackPrefab(scene, root, pos);
-            break;
-        case 8:
-        case 9:
-        case 10:
-            spawnWallPrefab(scene, root, pos);
-            break;
-        default:
-            break;
+        Vec2 pos = Vec2(lerp(minDist - playRadius, playRadius - minDist, drandom()), lerp(minDist - playRadius, playRadius - minDist, drandom()));
+        bool safe = true;
+        for (EntityID ent : SceneView<Transform>(scene))
+        {
+            Transform *pTransform = scene.Get<Transform>(ent);
+            if (pTransform->pos.sqr_dist(pos) < minDist * minDist)
+            {
+                safe = false;
+                break;
+            }
+        }
+        if (!safe)
+            continue;
+
+        switch (type)
+        {
+            case Spawn::ammo:
+                spawnAmmoPackPrefab(scene, root, pos);
+                break;
+            case Spawn::health:
+                spawnHealthPackPrefab(scene, root, pos);
+                break;
+            case Spawn::crate:
+                spawnCratePrefab(scene, root, pos);
+                break;
+            case Spawn::wall:
+                spawnWallPrefab(scene, root, pos);
+                break;
+
+            default:
+                break;
+        }
+        countInd++;
     }
 }
+
 #endif

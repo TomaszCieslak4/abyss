@@ -15,6 +15,7 @@ EntityID attachSniperPrefab(Scene &scene, EntityID parent)
     scene.Assign<ObjectToWorld>(gun);
     scene.Assign<Rect>(gun);
     scene.Assign<Renderer>(gun);
+    scene.Assign<Weapon>(gun);
     setParent(scene, gun, parent);
 
     {
@@ -104,6 +105,7 @@ EntityID attachSmgPrefab(Scene &scene, EntityID parent)
     scene.Assign<ObjectToWorld>(gun);
     scene.Assign<Rect>(gun);
     scene.Assign<Renderer>(gun);
+    scene.Assign<Weapon>(gun);
     setParent(scene, gun, parent);
 
     {
@@ -188,6 +190,7 @@ void spawnHealthPackPrefab(Scene &scene, EntityID parent, Vec2 pos)
     EntityID groundDrop = groundDropPrefab(scene, parent, pos);
     Transform *pTransform = scene.Get<Transform>(groundDrop);
     pTransform->pos = pos;
+    scene.Assign<HealthPack>(groundDrop);
     {
         EntityID healthPack = scene.NewEntity();
         Transform *pTransform = scene.Assign<Transform>(healthPack);
@@ -219,6 +222,7 @@ void spawnAmmoPackPrefab(Scene &scene, EntityID parent, Vec2 pos)
     EntityID groundDrop = groundDropPrefab(scene, parent, pos);
     Transform *pTransform = scene.Get<Transform>(groundDrop);
     pTransform->pos = pos;
+    scene.Assign<AmmoPack>(groundDrop);
     {
         EntityID ammoPackVisual = scene.NewEntity();
         Transform *pTransform = scene.Assign<Transform>(ammoPackVisual);
@@ -254,6 +258,8 @@ void spawnCratePrefab(Scene &scene, EntityID parent, Vec2 pos)
     EntityID crate = scene.NewEntity();
     Transform *pTransform = scene.Assign<Transform>(crate);
     scene.Assign<ObjectToWorld>(crate); // Add with transform
+    scene.Assign<Health>(crate);
+    scene.Assign<Crate>(crate);
     setParent(scene, crate, parent);
 
     {
@@ -264,7 +270,7 @@ void spawnCratePrefab(Scene &scene, EntityID parent, Vec2 pos)
         scene.Assign<Renderer>(visual);
         scene.Assign<Collider>(visual);
         pTransform->pos = pos;
-        pTransform->scale = Vec2(1, 1);
+        pTransform->scale = Vec2(2, 2);
 
         Color *pColor = scene.Assign<Color>(visual);
         *pColor = {255, 255, 255};
@@ -295,14 +301,21 @@ void spawnWallPrefab(Scene &scene, EntityID parent, Vec2 pos)
     EntityID wall = scene.NewEntity();
     Transform *pTransform = scene.Assign<Transform>(wall);
     scene.Assign<ObjectToWorld>(wall); // Add with transform
-    scene.Assign<Rect>(wall);
-    scene.Assign<Renderer>(wall);
-    scene.Assign<Collider>(wall);
     pTransform->pos = pos;
-    pTransform->scale = Vec2(4, 4);
 
-    Color *pColor = scene.Assign<Color>(wall);
-    *pColor = {255, 255, 255};
+    {
+        EntityID wallVisual = scene.NewEntity();
+        Transform *pTransform = scene.Assign<Transform>(wallVisual);
+        scene.Assign<ObjectToWorld>(wallVisual); // Add with transform
+        scene.Assign<Rect>(wallVisual);
+        scene.Assign<Renderer>(wallVisual);
+        scene.Assign<Collider>(wallVisual);
+        pTransform->scale = Vec2(4, 4);
+
+        Color *pColor = scene.Assign<Color>(wallVisual);
+        *pColor = {255, 255, 255};
+        setParent(scene, wallVisual, wall);
+    }
     setParent(scene, wall, parent);
 }
 

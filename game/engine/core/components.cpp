@@ -15,12 +15,17 @@ struct Transform
 
 struct ObjectToWorld
 {
-    Mat3 matrix;
+    Mat3 matrix = Mat3::identity();
 };
 
 struct Parent
 {
     EntityID parent;
+};
+
+struct Despawn
+{
+    double time_to_despawn;
 };
 
 struct Children
@@ -34,6 +39,7 @@ struct Collider
 
 struct Rigidbody
 {
+    Vec2 velocity;
 };
 
 struct Collision
@@ -53,10 +59,22 @@ struct Event
 
 struct Camera
 {
-    Mat3 world_to_view;
+    Mat3 world_to_view = Mat3::identity();
 };
 
 struct User
+{
+};
+
+struct HealthPack
+{
+};
+
+struct AmmoPack
+{
+};
+
+struct DeathAnimator
 {
 };
 
@@ -90,12 +108,21 @@ struct AI
     double watchRange;
 };
 
+struct Crate
+{
+};
+
 struct Color
 {
     uint8_t r;
     uint8_t g;
     uint8_t b;
     double a = 1;
+};
+
+struct Outline
+{
+    double thickness = 0.05;
 };
 
 struct Renderer
@@ -142,6 +169,36 @@ void setParent(Scene &scene, EntityID ent, EntityID par)
     Children *pChildren = scene.Get<Children>(par);
     if (pChildren == nullptr) pChildren = scene.Assign<Children>(par);
     pChildren->children.push_back(ent);
+}
+
+void destroyEntity(Scene &scene, EntityID ent)
+{
+    Parent *pParent = scene.Get<Parent>(ent);
+    if (pParent != nullptr)
+    {
+        Children *pChildren = scene.Get<Children>(pParent->parent);
+        if (pChildren != nullptr)
+        {
+            for (int i = 0; i < pChildren->children.size(); i++)
+            {
+                if (pChildren->children[i] == ent)
+                {
+                    pChildren->children.erase(pChildren->children.begin() + i);
+                }
+            }
+        }
+    }
+
+    Children *pChildren = scene.Get<Children>(ent);
+    if (pChildren != nullptr)
+    {
+        for (int i = pChildren->children.size() - 1; i <= 0; i--)
+        {
+            destroyEntity(scene, pChildren->children[i]);
+        }
+    }
+
+    scene.DestroyEntity(ent);
 }
 
 #endif
