@@ -118,7 +118,7 @@ bool sat(Scene &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
             project_onto_axis(verticies2, axis[i], bmin, bmax);
         }
 
-        if (amin >= bmax || amax >= bmin) return false;
+        if (amin >= bmax || amax <= bmin) return false;
 
         double max = std::min(amax, bmax);
         double min = std::max(amin, bmin);

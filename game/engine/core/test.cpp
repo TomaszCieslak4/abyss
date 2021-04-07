@@ -207,7 +207,7 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
     if (scene.Get<Collider>(ent) != nullptr)
     {
         Vec2 mtv;
-
+        
         if (sat(scene, ent, other, mtv))
         {
             EntityID collisionEvent = scene.NewEntity();
