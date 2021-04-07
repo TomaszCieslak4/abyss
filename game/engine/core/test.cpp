@@ -2,18 +2,22 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include "./components.cpp"
-#include "./scene.cpp"
-#include "./matrix.cpp"
-#include "./vector.cpp"
-#include "./game.cpp"
 #include <vector>
 #include <iostream>
 #include <bitset>
 
-#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#endif
+#include <emscripten/bind.h>
+#include <emscripten/val.h>
+
+#include "./vector.cpp"
+#include "./matrix.cpp"
+#include "./components.cpp"
+#include "./sat.cpp"
+#include "./scene.cpp"
+#include "./game.cpp"
+
+using namespace emscripten;
 
 enum Controls
 {
@@ -27,7 +31,6 @@ enum Controls
 };
 
 Scene scene;
-EntityID root;
 double elapsedTime;
 std::bitset<Controls::MAX + 1> immediate_key_state;
 std::bitset<Controls::MAX + 1> key_state;
@@ -56,9 +59,9 @@ void calculateMatrix(Scene &scene, EntityID ent)
     }
 }
 
-void ObjectToWorldSystem(Scene &scene, EntityID root)
+void ObjectToWorldSystem(Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(root);
+    Children *pChildren = scene.Get<Children>(ROOT_ENTITY);
 
     for (EntityID ent : pChildren->children)
     {
@@ -93,9 +96,8 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
         Mat3 object_to_view = view_matrix * pObjectToWorld->matrix;
         Outline *pOutline = scene.Get<Outline>(ent);
 
-        Rect *pRect = scene.Get<Rect>(ent);
+        // Rect *pRect = scene.Get<Rect>(ent);
 
-#ifdef __EMSCRIPTEN__
         EM_ASM({
             window.context.save();
             window.context.setTransform($0, $1, $2, $3, $4, $5);
@@ -103,71 +105,76 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
             window.context.beginPath();
         },
                object_to_view.array[0], object_to_view.array[3], object_to_view.array[1], object_to_view.array[4], object_to_view.array[2], object_to_view.array[5], pColor->r, pColor->g, pColor->b, pColor->a);
-#endif
 
         if (pOutline != nullptr)
         {
-#ifdef __EMSCRIPTEN__
             EM_ASM({
                 window.context.lineWidth = $0;
                 window.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`;
                 window.context.scale(1 - $0 / 2, 1 - $0 / 2);
             },
                    pOutline->thickness, pColor->r, pColor->g, pColor->b, pColor->a);
-#endif
         }
 
-        if (pRect != nullptr)
-        {
-#ifdef __EMSCRIPTEN__
-            EM_ASM({
-                window.context.rect(-0.5, -0.5, 1, 1);
-            });
-#endif
-        }
+        // if (pRect != nullptr)
+        // {
+        //     EM_ASM({
+        //         window.context.rect(-0.5, -0.5, 1, 1);
+        //     });
+        // }
 
         Arc *pArcRenderer = scene.Get<Arc>(ent);
 
         if (pArcRenderer != nullptr)
         {
-#ifdef __EMSCRIPTEN__
             EM_ASM({
                 window.context.arc(0, 0, 0.5, $0, $1);
             },
                    pArcRenderer->start_angle, pArcRenderer->end_angle);
-#endif
         }
 
-        Triangle *pTriangleRenderer = scene.Get<Triangle>(ent);
+        // Triangle *pTriangleRenderer = scene.Get<Triangle>(ent);
 
-        if (pTriangleRenderer != nullptr)
+        // if (pTriangleRenderer != nullptr)
+        // {
+        //     EM_ASM({
+        //         window.context.moveTo(0, -0.5);
+        //         window.context.lineTo(0.5, 0.5);
+        //         window.context.lineTo(-0.5, 0.5);
+        //     });
+        // }
+
+        Polygon *pMesh = scene.Get<Polygon>(ent);
+
+        if (pMesh != nullptr)
         {
-#ifdef __EMSCRIPTEN__
-            EM_ASM({
-                window.context.moveTo(0, -0.5);
-                window.context.lineTo(0.5, 0.5);
-                window.context.lineTo(-0.5, 0.5);
-            });
-#endif
+            if (pMesh->verticies.size() > 2)
+            {
+                EM_ASM({
+                    let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2);
+                    window.context.moveTo(verticies[0], verticies[1]);
+                    for (let i = 1; i < $1; i++)
+                    {
+                        window.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]);
+                    }
+                },
+                       pMesh->verticies.data(), pMesh->verticies.size());
+            }
         }
 
         if (pOutline != nullptr)
         {
-#ifdef __EMSCRIPTEN__
             EM_ASM({
                 window.context.stroke();
                 window.context.restore();
             });
-#endif
         }
         else
         {
-#ifdef __EMSCRIPTEN__
             EM_ASM({
                 window.context.fill();
                 window.context.restore();
             });
-#endif
         }
     }
 
@@ -180,9 +187,9 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
     }
 }
 
-void RenderSystem(Scene &scene, EntityID root)
+void RenderSystem(Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(root);
+    Children *pChildren = scene.Get<Children>(ROOT_ENTITY);
 
     for (EntityID cam : SceneView<Camera>(scene))
     {
@@ -195,81 +202,13 @@ void RenderSystem(Scene &scene, EntityID root)
     }
 }
 
-bool circleCircleIntersects(Mat3 &obj1, Mat3 &obj2, Vec2 &mtv)
-{
-    Vec2 pos1 = obj1.get_translation();
-    Vec2 pos2 = obj2.get_translation();
-    Vec2 scale1 = obj1.get_scale();
-    Vec2 scale2 = obj2.get_scale();
-
-    Vec2 diff = pos2 - pos1;
-    double sqr_mag = diff.sqr_magnitude();
-    double radius = (scale2.x + scale1.x) / 2;
-
-    if (sqr_mag >= radius * radius) return false;
-
-    mtv = diff * (radius / sqrt(sqr_mag) - 1);
-    return true;
-}
-
-bool rectCircleIntersects(Mat3 &obj1, Mat3 &obj2, Vec2 &mtv)
-{
-    Vec2 rectPos = obj1.get_translation();
-    Vec2 circlePos = obj2.get_translation();
-
-    Vec2 rectScale = obj1.get_scale();
-    rectScale = rectScale / 2;
-    double circleRadius = obj2.get_scale().x / 2;
-
-    Vec2 closest = circlePos.clamp(rectPos - rectScale, rectPos + rectScale);
-    Vec2 diff = circlePos - closest;
-    double sqr_mag = diff.sqr_magnitude();
-
-    if (sqr_mag >= (circleRadius * circleRadius)) return false;
-    mtv = diff * ((circleRadius / sqrt(sqr_mag)) - 1);
-    return true;
-}
-
 void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID topEnt, EntityID otherTopEnt)
 {
     if (scene.Get<Collider>(ent) != nullptr)
     {
-        ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(ent);
-        ObjectToWorld *pOtherObjectToWorld = scene.Get<ObjectToWorld>(other);
-
-        bool colliding = false;
         Vec2 mtv;
-        if (scene.Get<Rect>(ent) != nullptr)
-        {
-            if (scene.Get<Rect>(other) != nullptr)
-            {
-                // if (sat(genRectVerts(pObjectToWorld->matrix), genRectVerts(pOtherObjectToWorld->matrix)))
-                // {
-                //     std::cout << "COLLIDING" << std::endl;
-                // }
-            }
-            else if (scene.Get<Arc>(other) != nullptr)
-            {
-                if (rectCircleIntersects(pObjectToWorld->matrix, pOtherObjectToWorld->matrix, mtv)) colliding = true;
-            }
-        }
-        else if (scene.Get<Arc>(ent) != nullptr)
-        {
-            if (scene.Get<Rect>(other) != nullptr)
-            {
-                if (rectCircleIntersects(pOtherObjectToWorld->matrix, pObjectToWorld->matrix, mtv))
-                {
-                    mtv = mtv * -1;
-                    colliding = true;
-                }
-            }
-            if (scene.Get<Arc>(other) != nullptr)
-            {
-                if (circleCircleIntersects(pObjectToWorld->matrix, pOtherObjectToWorld->matrix, mtv)) colliding = true;
-            }
-        }
 
-        if (colliding)
+        if (sat(scene, ent, other, mtv))
         {
             EntityID collisionEvent = scene.NewEntity();
             scene.Assign<Event>(collisionEvent);
@@ -288,9 +227,9 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
     }
 }
 
-void checkCollision(Scene &scene, EntityID ent, EntityID topEnt, EntityID root)
+void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
 {
-    Children *pRootChildren = scene.Get<Children>(root);
+    Children *pRootChildren = scene.Get<Children>(ROOT_ENTITY);
 
     if (scene.Get<Collider>(ent) != nullptr)
     {
@@ -305,7 +244,7 @@ void checkCollision(Scene &scene, EntityID ent, EntityID topEnt, EntityID root)
     if (pChildren == nullptr) return;
     for (EntityID ent : pChildren->children)
     {
-        checkCollision(scene, ent, topEnt, root);
+        checkCollision(scene, ent, topEnt);
     }
 }
 
@@ -319,12 +258,12 @@ void RigidbodySystem(Scene &scene, double dt)
     }
 }
 
-void CollisionSystem(Scene &scene, EntityID root)
+void CollisionSystem(Scene &scene)
 {
     // Generate Collisions
     for (EntityID ent : SceneView<ObjectToWorld, Rigidbody, Transform>(scene))
     {
-        checkCollision(scene, ent, ent, root);
+        checkCollision(scene, ent, ent);
     }
 
     // Resolve Collisions
@@ -560,140 +499,153 @@ void DespawnSystem(Scene &scene, double dt)
     }
 }
 
-extern "C"
+void onMouseDown(int x, int y, int button)
 {
-    void onMouseDown(int x, int y, int button)
-    {
-        if (button == 0)
-            immediate_key_state.set(Controls::fire);
-        immediate_mouse_pos.x = x;
-        immediate_mouse_pos.y = y;
-    }
+    if (button == 0)
+        immediate_key_state.set(Controls::fire);
+    immediate_mouse_pos.x = x;
+    immediate_mouse_pos.y = y;
+}
 
-    void onMouseMove(int x, int y)
-    {
-        immediate_mouse_pos.x = x;
-        immediate_mouse_pos.y = y;
-    }
+void onMouseMove(int x, int y)
+{
+    immediate_mouse_pos.x = x;
+    immediate_mouse_pos.y = y;
+}
 
-    void onMouseUp(int x, int y, int button)
-    {
-        if (button == 0)
-            immediate_key_state.reset(Controls::fire);
-        immediate_mouse_pos.x = x;
-        immediate_mouse_pos.y = y;
-    }
+void onMouseUp(int x, int y, int button)
+{
+    if (button == 0)
+        immediate_key_state.reset(Controls::fire);
+    immediate_mouse_pos.x = x;
+    immediate_mouse_pos.y = y;
+}
 
-    void onKeyDown(int key)
-    {
-        immediate_key_state.set(key);
-    }
+void onKeyDown(int key)
+{
+    immediate_key_state.set(key);
+}
 
-    void onKeyUp(int key)
-    {
-        immediate_key_state.reset(key);
-    }
+void onKeyUp(int key)
+{
+    immediate_key_state.reset(key);
+}
 
-    void start()
-    {
-        root = scene.NewEntity();
-        Transform *pTransform = scene.Assign<Transform>(root);
-        scene.Assign<Children>(root);
-        scene.Assign<ObjectToWorld>(root);
-        loadScene(scene, root);
-    }
+void start()
+{
+    EntityID root = scene.NewEntity();
+    assert(root == ROOT_ENTITY);
 
-    void update(double dt)
-    {
-#ifdef __EMSCRIPTEN__
-        screen_size.x = EM_ASM_DOUBLE({
-            window.canvas.width = window.canvas.clientWidth;
-            return window.canvas.width;
-        });
+    Transform *pTransform = scene.Assign<Transform>(ROOT_ENTITY);
+    scene.Assign<ObjectToWorld>(ROOT_ENTITY);
+    scene.Assign<Children>(ROOT_ENTITY);
+    loadScene(scene);
+}
 
-        screen_size.y = EM_ASM_DOUBLE({
-            window.canvas.height = window.canvas.clientHeight;
-            return window.canvas.height;
-        });
+void update(double dt)
+{
+    screen_size.x = EM_ASM_DOUBLE({
+        window.canvas.width = window.canvas.clientWidth;
+        return window.canvas.width;
+    });
 
-        EM_ASM({
-            let context = window.context;
-            context.clearRect(0, 0, $1, $2);
-        },
-               screen_size.x, screen_size.y);
-#endif
-        elapsedTime += dt;
-        mouse_pos = immediate_mouse_pos;
-        key_state = immediate_key_state;
+    screen_size.y = EM_ASM_DOUBLE({
+        window.canvas.height = window.canvas.clientHeight;
+        return window.canvas.height;
+    });
 
-        RigidbodySystem(scene, dt);
-        ObjectToWorldSystem(scene, root);
-        CollisionSystem(scene, root);
-        ObjectToWorldSystem(scene, root);
+    EM_ASM({
+        let context = window.context;
+        context.clearRect(0, 0, $1, $2);
+    },
+           screen_size.x, screen_size.y);
 
-        PlayerMovementSystem(scene);
-        DespawnSystem(scene, dt);
-        GroundDropSystem(scene, elapsedTime);
-        InteractSystem(scene);
-        DeathAnimatorSystem(scene, dt);
+    elapsedTime += dt;
+    mouse_pos = immediate_mouse_pos;
+    key_state = immediate_key_state;
 
-        CameraFollowSystem(scene);
-        WorldToViewSystem(scene);
-        HealthSystem(scene);
-        RenderSystem(scene, root);
-        EventSystem(scene);
+    RigidbodySystem(scene, dt);
+    ObjectToWorldSystem(scene);
+    CollisionSystem(scene);
+    ObjectToWorldSystem(scene);
 
-        // for (EntityID ent : SceneView<Health>(scene))
-        // {
-        //     Health *pHealth = scene.Get<Health>(ent);
+    PlayerMovementSystem(scene);
+    DespawnSystem(scene, dt);
+    GroundDropSystem(scene, elapsedTime);
+    InteractSystem(scene);
+    DeathAnimatorSystem(scene, dt);
 
-        //     // Do stuff
-        //     pHealth->health = std::max(0, pHealth->health - 1);
-        // }
-        last_key_state = key_state;
-    }
+    CameraFollowSystem(scene);
+    WorldToViewSystem(scene);
+    HealthSystem(scene);
+    RenderSystem(scene);
+    EventSystem(scene);
 
-    int main(int argc, char *argv[])
-    {
-        start();
-#ifdef __EMSCRIPTEN__
-        EM_ASM({
-            window.canvas = document.getElementById('canvas');
-            window.context = window.canvas.getContext('2d');
+    // for (EntityID ent : SceneView<Crate, Children>(scene))
+    // {
+    //     Children *pChildren = scene.Get<Children>(ent);
+    //     Transform *pTransform = scene.Get<Transform>(pChildren->children[0]);
 
-            let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4});
+    //     // Do stuff
+    //     // pHealth->health = std::max(0, pHealth->health - 1);
+    //     pTransform->rotation = pTransform->rotation + dt * 10;
+    // }
+    last_key_state = key_state;
+}
 
-            window.canvas.onmousedown = function(evt) { Module._onMouseDown(evt.clientX, evt.clientY, evt.button); };
-            window.canvas.onmouseup = function(evt) { Module._onMouseUp(evt.clientX, evt.clientY, evt.button); };
-            window.canvas.onmousemove = function(evt) { Module._onMouseMove(evt.clientX, evt.clientY); };
-            window.canvas.onkeydown = function(evt)
-            {
-                let key = keyMap[evt.key];
-                if (key != null)
-                    Module._onKeyDown(key);
-            };
-            window.canvas.onkeyup = function(evt)
-            {
-                let key = keyMap[evt.key];
-                if (key != null)
-                    Module._onKeyUp(key);
-            };
+int main(int argc, char *argv[])
+{
+    EM_ASM({
+        window.canvas = document.getElementById('canvas');
+        window.context = window.canvas.getContext('2d');
 
-            let request = 0;
-            let lastTime = performance.now();
+        let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4});
 
-            function update(timestamp)
-            {
-                let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
-                lastTime = timestamp;
-                Module._update(dt);
-                request = window.requestAnimationFrame(update);
-            }
+        window.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); };
+        window.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); };
+        window.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); };
+        window.canvas.onkeydown = function(evt)
+        {
+            let key = keyMap[evt.key];
+            if (key != null)
+                Module.onKeyDown(key);
+        };
+        window.canvas.onkeyup = function(evt)
+        {
+            let key = keyMap[evt.key];
+            if (key != null)
+                Module.onKeyUp(key);
+        };
 
+        let request = 0;
+        let lastTime = performance.now();
+
+        function update(timestamp)
+        {
+            let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
+            lastTime = timestamp;
+            Module.update(dt);
             request = window.requestAnimationFrame(update);
-        });
-#endif
-    }
+        }
+
+        request = window.requestAnimationFrame(update);
+    });
+
+    start();
+}
+
+EMSCRIPTEN_BINDINGS(my_module)
+{
+    // value_array<Vec2>("Vec2")
+    //     .element(&Vec2::x)
+    //     .element(&Vec2::y);
+    // register_vector<Vec2>("vector<Vec2>");
+    function("update", &update);
+    function("onMouseDown", &onMouseDown);
+    function("onMouseMove", &onMouseMove);
+    function("onMouseUp", &onMouseUp);
+    function("onKeyDown", &onKeyDown);
+    function("onKeyUp", &onKeyUp);
 }
 
 #endif

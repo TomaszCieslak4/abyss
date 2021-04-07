@@ -19,6 +19,7 @@ typedef unsigned long long EntityID;
 constexpr int MAX_COMPONENTS = 32;
 constexpr int MAX_ENTITIES = 3000;
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+constexpr EntityID ROOT_ENTITY = 0;
 
 inline EntityID CreateEntityId(EntityIndex index, EntityVersion version)
 {

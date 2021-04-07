@@ -1,10 +1,11 @@
 #ifndef COMPONENTS_H
 #define COMPONENTS_H
 
-#include "./scene.cpp"
-#include "./matrix.cpp"
-#include "./vector.cpp"
 #include <vector>
+
+#include "./vector.cpp"
+#include "./matrix.cpp"
+#include "./scene.cpp"
 
 struct Transform
 {
@@ -129,18 +130,21 @@ struct Renderer
 {
 };
 
-struct Rect
-{
-};
-
 struct Arc
 {
     double start_angle;
     double end_angle = M_PI * 2;
 };
 
-struct Triangle
+struct Polygon
 {
+    std::vector<Vec2> verticies;
+};
+
+enum Shape
+{
+    rectangle,
+    triangle
 };
 
 void setParent(Scene &scene, EntityID ent, EntityID par)
@@ -152,12 +156,8 @@ void setParent(Scene &scene, EntityID ent, EntityID par)
         if (pChildren == nullptr) pChildren = scene.Assign<Children>(pParent->parent);
 
         for (int i = 0; i < pChildren->children.size(); i++)
-        {
             if (pChildren->children[i] == ent)
-            {
                 pChildren->children.erase(pChildren->children.begin() + i);
-            }
-        }
     }
     else
     {
@@ -177,28 +177,50 @@ void destroyEntity(Scene &scene, EntityID ent)
     if (pParent != nullptr)
     {
         Children *pChildren = scene.Get<Children>(pParent->parent);
+
         if (pChildren != nullptr)
-        {
             for (int i = 0; i < pChildren->children.size(); i++)
-            {
                 if (pChildren->children[i] == ent)
-                {
                     pChildren->children.erase(pChildren->children.begin() + i);
-                }
-            }
-        }
     }
 
     Children *pChildren = scene.Get<Children>(ent);
+
     if (pChildren != nullptr)
-    {
         for (int i = pChildren->children.size() - 1; i <= 0; i--)
-        {
             destroyEntity(scene, pChildren->children[i]);
-        }
-    }
 
     scene.DestroyEntity(ent);
+}
+
+Polygon *assignShape(Scene &scene, EntityID ent, Shape shape, bool addRenderer = true)
+{
+    Polygon *pMesh = scene.Assign<Polygon>(ent);
+    if (addRenderer) scene.Assign<Renderer>(ent);
+
+    switch (shape)
+    {
+        case Shape::rectangle:
+            pMesh->verticies = {Vec2(-0.5, -0.5), Vec2(0.5, -0.5), Vec2(0.5, 0.5), Vec2(-0.5, 0.5)};
+            break;
+
+        case Shape::triangle:
+            pMesh->verticies = {Vec2(0, -0.5), Vec2(0.5, 0.5), Vec2(-0.5, 0.5)};
+            break;
+
+        default:
+            break;
+    }
+
+    return pMesh;
+}
+
+Transform *assignTransform(Scene &scene, EntityID ent, EntityID parent = ROOT_ENTITY)
+{
+    Transform *pTransform = scene.Assign<Transform>(ent);
+    scene.Assign<ObjectToWorld>(ent);
+    setParent(scene, ent, parent);
+    return pTransform;
 }
 
 #endif
