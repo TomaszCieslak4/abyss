@@ -1533,7 +1533,7 @@ function createExportWrapper(name, fixedasm) {
   };
 }
 
-var wasmBinaryFile = 'main.wasm';
+var wasmBinaryFile = 'index.wasm';
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);
 }
@@ -1698,16 +1698,14 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  7076: function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) {window.context.save(); window.context.setTransform($0, $1, $2, $3, $4, $5); window.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`; window.context.beginPath();},  
- 7247: function($0, $1, $2, $3, $4) {window.context.lineWidth = $0; window.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`; window.context.scale(1 - $0 / 2, 1 - $0 / 2);},  
- 7393: function($0, $1) {window.context.arc(0, 0, 0.5, $0, $1);},  
- 7436: function($0, $1) {let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2); window.context.moveTo(verticies[0], verticies[1]); for (let i = 1; i < $1; i++) { window.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]); }},  
- 7656: function() {window.context.stroke(); window.context.restore();},  
- 7711: function() {window.context.fill(); window.context.restore();},  
- 7764: function() {window.canvas.width = window.canvas.clientWidth; return window.canvas.width;},  
- 7845: function() {window.canvas.height = window.canvas.clientHeight; return window.canvas.height;},  
- 7929: function($0, $1, $2) {let context = window.context; context.clearRect(0, 0, $1, $2);},  
- 7996: function() {window.canvas = document.getElementById('canvas'); window.context = window.canvas.getContext('2d'); let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4}); window.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); }; window.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); }; window.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); }; window.canvas.onkeydown = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyDown(key); }; window.canvas.onkeyup = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyUp(key); }; let request = 0; let lastTime = performance.now(); function update(timestamp) { let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60); lastTime = timestamp; Module.update(dt); request = window.requestAnimationFrame(update); } request = window.requestAnimationFrame(update);}
+  4240: function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) {Module.context.save(); Module.context.setTransform($0, $1, $2, $3, $4, $5); Module.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`; Module.context.beginPath();},  
+ 4411: function($0, $1, $2, $3, $4) {Module.context.lineWidth = $0; Module.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`; Module.context.scale(1 - $0 / 2, 1 - $0 / 2);},  
+ 4557: function($0, $1) {Module.context.arc(0, 0, 0.5, $0, $1);},  
+ 4600: function($0, $1) {let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2); Module.context.moveTo(verticies[0], verticies[1]); for (let i = 1; i < $1; i++) { Module.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]); }},  
+ 4820: function() {Module.context.stroke(); Module.context.restore();},  
+ 4875: function() {Module.context.fill(); Module.context.restore();},  
+ 4928: function($0, $1) {let packets = new Uint8Array(Module.HEAPU8.buffer, $0, $1 * 16); for (let i = 0; i < $1; i++) { Module.broadcast(packets.slice(i * 16, (i + 1) * 16)); }},  
+ 5085: function($0) {var Server = require('ws').Server; let wss = new Server({port : $0}); wss.binaryType = 'arraybuffer'; let messages = []; wss.on( 'close', function() { console.log('disconnected'); }); wss.on( 'listening', function() { console.log('Start on port ' + $0); }); wss.broadcast = function(message) { for (let ws of wss.clients) { ws.send(message); } }; Module.broadcast = wss.broadcast; wss.on( 'connection', function(ws) { for (let i = 0; i < messages.length; i++) { ws.send(messages[i]); } ws.on( 'message', function(message) { ws.send(message); console.log(message); }); }); function clock(start) { if (!start) return process.hrtime(); var end = process.hrtime(start); return Math.round((end[0] * 1000) + (end[1] / 1000000)); } let request = 0; let lastTime = clock(); function update() { let timestamp = clock(); let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60); lastTime = timestamp; Module.update(dt); request = setTimeout(update, (1 / 1) * 3000); } request = setTimeout(update, 0);}
 };
 
 
@@ -2750,11 +2748,6 @@ var ASM_CONSTS = {
       if (!ASM_CONSTS.hasOwnProperty(code)) abort('No EM_ASM constant found at address ' + code);
       return ASM_CONSTS[code].apply(null, args);
     }
-  function _emscripten_asm_const_double(a0,a1,a2
-  ) {
-  return _emscripten_asm_const_int(a0,a1,a2);
-  }
-
 
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.copyWithin(dest, src, src + num);
@@ -2815,6 +2808,55 @@ var ASM_CONSTS = {
       }
       err('Failed to grow the heap from ' + oldSize + ' bytes to ' + newSize + ' bytes, not enough memory!');
       return false;
+    }
+
+  function flush_NO_FILESYSTEM() {
+      // flush anything remaining in the buffers during shutdown
+      if (typeof _fflush !== 'undefined') _fflush(0);
+      var buffers = SYSCALLS.buffers;
+      if (buffers[1].length) SYSCALLS.printChar(1, 10);
+      if (buffers[2].length) SYSCALLS.printChar(2, 10);
+    }
+  
+  var SYSCALLS={mappings:{},buffers:[null,[],[]],printChar:function(stream, curr) {
+        var buffer = SYSCALLS.buffers[stream];
+        assert(buffer);
+        if (curr === 0 || curr === 10) {
+          (stream === 1 ? out : err)(UTF8ArrayToString(buffer, 0));
+          buffer.length = 0;
+        } else {
+          buffer.push(curr);
+        }
+      },varargs:undefined,get:function() {
+        assert(SYSCALLS.varargs != undefined);
+        SYSCALLS.varargs += 4;
+        var ret = HEAP32[(((SYSCALLS.varargs)-(4))>>2)];
+        return ret;
+      },getStr:function(ptr) {
+        var ret = UTF8ToString(ptr);
+        return ret;
+      },get64:function(low, high) {
+        if (low >= 0) assert(high === 0);
+        else assert(high === -1);
+        return low;
+      }};
+  function _fd_write(fd, iov, iovcnt, pnum) {
+      // hack to support printf in SYSCALLS_REQUIRE_FILESYSTEM=0
+      var num = 0;
+      for (var i = 0; i < iovcnt; i++) {
+        var ptr = HEAP32[(((iov)+(i*8))>>2)];
+        var len = HEAP32[(((iov)+(i*8 + 4))>>2)];
+        for (var j = 0; j < len; j++) {
+          SYSCALLS.printChar(fd, HEAPU8[ptr+j]);
+        }
+        num += len;
+      }
+      HEAP32[((pnum)>>2)] = num
+      return 0;
+    }
+
+  function _setTempRet0($i) {
+      setTempRet0(($i) | 0);
     }
 
   var readAsmConstArgsArray=[];
@@ -2888,10 +2930,11 @@ var asmLibraryArg = {
   "_embind_register_std_wstring": __embind_register_std_wstring,
   "_embind_register_void": __embind_register_void,
   "abort": _abort,
-  "emscripten_asm_const_double": _emscripten_asm_const_double,
   "emscripten_asm_const_int": _emscripten_asm_const_int,
   "emscripten_memcpy_big": _emscripten_memcpy_big,
-  "emscripten_resize_heap": _emscripten_resize_heap
+  "emscripten_resize_heap": _emscripten_resize_heap,
+  "fd_write": _fd_write,
+  "setTempRet0": _setTempRet0
 };
 var asm = createWasm();
 /** @type {function(...*):?} */
@@ -2941,6 +2984,9 @@ var _emscripten_stack_get_end = Module["_emscripten_stack_get_end"] = function()
 
 /** @type {function(...*):?} */
 var _free = Module["_free"] = createExportWrapper("free");
+
+/** @type {function(...*):?} */
+var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
 
 
@@ -3409,7 +3455,7 @@ function checkUnflushedContent() {
     has = true;
   }
   try { // it doesn't matter if it fails
-    var flush = null;
+    var flush = flush_NO_FILESYSTEM;
     if (flush) flush();
   } catch(e) {}
   out = oldOut;

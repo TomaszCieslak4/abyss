@@ -4,22 +4,23 @@
 #include <bitset>
 #include <vector>
 
-extern int s_componentCounter;
-int s_componentCounter = 0;
-template <class T>
-int GetId()
-{
-    static int s_componentId = s_componentCounter++;
-    return s_componentId;
-}
-
 typedef unsigned int EntityIndex;
 typedef unsigned int EntityVersion;
 typedef unsigned long long EntityID;
+typedef unsigned int ComponentID;
 constexpr int MAX_COMPONENTS = 32;
 constexpr int MAX_ENTITIES = 3000;
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
 constexpr EntityID ROOT_ENTITY = 0;
+
+extern ComponentID s_componentCounter;
+ComponentID s_componentCounter = 1;
+template <class T>
+ComponentID GetId()
+{
+    static ComponentID s_componentId = s_componentCounter++;
+    return s_componentId;
+}
 
 inline EntityID CreateEntityId(EntityIndex index, EntityVersion version)
 {
@@ -83,12 +84,25 @@ struct Scene
     template <typename T>
     T *Get(EntityID id)
     {
-        int componentId = GetId<T>();
+        ComponentID componentId = GetId<T>();
         if (!entities[GetEntityIndex(id)].mask.test(componentId))
             return nullptr;
 
         T *pComponent = static_cast<T *>(componentPools[componentId]->get(GetEntityIndex(id)));
         return pComponent;
+    }
+
+    void *GetByID(EntityID id, ComponentID componentId)
+    {
+        if (!entities[GetEntityIndex(id)].mask.test(componentId))
+            return nullptr;
+
+        return componentPools[componentId]->get(GetEntityIndex(id));
+    }
+
+    size_t GetComponentSize(ComponentID componentId)
+    {
+        return componentPools[componentId]->elementSize;
     }
 
     template <typename T>
@@ -98,7 +112,16 @@ struct Scene
         if (entities[GetEntityIndex(id)].id != id)
             return;
 
-        int componentId = GetId<T>();
+        ComponentID componentId = GetId<T>();
+        entities[GetEntityIndex(id)].mask.reset(componentId);
+    }
+
+    void RemoveById(EntityID id, ComponentID componentId)
+    {
+        // ensures you're not accessing an entity that has been deleted
+        if (entities[GetEntityIndex(id)].id != id)
+            return;
+
         entities[GetEntityIndex(id)].mask.reset(componentId);
     }
 
@@ -127,7 +150,7 @@ struct Scene
     template <typename T>
     T *Assign(EntityID id)
     {
-        int componentId = GetId<T>();
+        ComponentID componentId = GetId<T>();
 
         if (componentPools.size() <= componentId) // Not enough component pool
         {
@@ -159,7 +182,7 @@ struct SceneView
         else
         {
             // Unpack the template parameters into an initializer list
-            int componentIds[] = {0, GetId<ComponentTypes>()...};
+            ComponentID componentIds[] = {0, GetId<ComponentTypes>()...};
             for (int i = 1; i < (sizeof...(ComponentTypes) + 1); i++)
                 componentMask.set(componentIds[i]);
         }

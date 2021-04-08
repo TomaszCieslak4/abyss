@@ -1,4 +1,3 @@
-
 #ifndef TEST_H
 #define TEST_H
 
@@ -17,7 +16,11 @@
 #include "./scene.cpp"
 #include "./game.cpp"
 
+// #define SERVER
+
 using namespace emscripten;
+
+constexpr int PORT = 25567;
 
 enum Controls
 {
@@ -30,14 +33,26 @@ enum Controls
     MAX = fire
 };
 
+enum NetworkOp
+{
+    modify,
+    create,
+    destroy,
+};
+
+struct Packet
+{
+    int size;
+    char *buffer;
+};
+
 Scene scene;
 double elapsedTime;
-std::bitset<Controls::MAX + 1> immediate_key_state;
 std::bitset<Controls::MAX + 1> key_state;
 std::bitset<Controls::MAX + 1> last_key_state;
-Vec2 immediate_mouse_pos;
 Vec2 mouse_pos;
 Vec2 screen_size;
+std::vector<Packet> packets;
 
 void calculateMatrix(Scene &scene, EntityID ent)
 {
@@ -99,50 +114,32 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
         // Rect *pRect = scene.Get<Rect>(ent);
 
         EM_ASM({
-            window.context.save();
-            window.context.setTransform($0, $1, $2, $3, $4, $5);
-            window.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`;
-            window.context.beginPath();
+            Module.context.save();
+            Module.context.setTransform($0, $1, $2, $3, $4, $5);
+            Module.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`;
+            Module.context.beginPath();
         },
                object_to_view.array[0], object_to_view.array[3], object_to_view.array[1], object_to_view.array[4], object_to_view.array[2], object_to_view.array[5], pColor->r, pColor->g, pColor->b, pColor->a);
 
         if (pOutline != nullptr)
         {
             EM_ASM({
-                window.context.lineWidth = $0;
-                window.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`;
-                window.context.scale(1 - $0 / 2, 1 - $0 / 2);
+                Module.context.lineWidth = $0;
+                Module.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`;
+                Module.context.scale(1 - $0 / 2, 1 - $0 / 2);
             },
                    pOutline->thickness, pColor->r, pColor->g, pColor->b, pColor->a);
         }
-
-        // if (pRect != nullptr)
-        // {
-        //     EM_ASM({
-        //         window.context.rect(-0.5, -0.5, 1, 1);
-        //     });
-        // }
 
         Arc *pArcRenderer = scene.Get<Arc>(ent);
 
         if (pArcRenderer != nullptr)
         {
             EM_ASM({
-                window.context.arc(0, 0, 0.5, $0, $1);
+                Module.context.arc(0, 0, 0.5, $0, $1);
             },
                    pArcRenderer->start_angle, pArcRenderer->end_angle);
         }
-
-        // Triangle *pTriangleRenderer = scene.Get<Triangle>(ent);
-
-        // if (pTriangleRenderer != nullptr)
-        // {
-        //     EM_ASM({
-        //         window.context.moveTo(0, -0.5);
-        //         window.context.lineTo(0.5, 0.5);
-        //         window.context.lineTo(-0.5, 0.5);
-        //     });
-        // }
 
         Polygon *pMesh = scene.Get<Polygon>(ent);
 
@@ -152,10 +149,10 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
             {
                 EM_ASM({
                     let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2);
-                    window.context.moveTo(verticies[0], verticies[1]);
+                    Module.context.moveTo(verticies[0], verticies[1]);
                     for (let i = 1; i < $1; i++)
                     {
-                        window.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]);
+                        Module.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]);
                     }
                 },
                        pMesh->verticies.data(), pMesh->verticies.size());
@@ -165,15 +162,15 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
         if (pOutline != nullptr)
         {
             EM_ASM({
-                window.context.stroke();
-                window.context.restore();
+                Module.context.stroke();
+                Module.context.restore();
             });
         }
         else
         {
             EM_ASM({
-                window.context.fill();
-                window.context.restore();
+                Module.context.fill();
+                Module.context.restore();
             });
         }
     }
@@ -207,7 +204,7 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
     if (scene.Get<Collider>(ent) != nullptr)
     {
         Vec2 mtv;
-        
+
         if (sat(scene, ent, other, mtv))
         {
             EntityID collisionEvent = scene.NewEntity();
@@ -499,118 +496,267 @@ void DespawnSystem(Scene &scene, double dt)
     }
 }
 
+void NetworkingClientSystem(Scene &scene, std::vector<Packet> &packets)
+{
+    for (int i = 0; i < packets.size(); i++)
+    {
+        char *packet = packets[i].buffer;
+
+        EntityID ent = *reinterpret_cast<EntityID *>(packet);
+        ComponentID comp = *reinterpret_cast<ComponentID *>(packet + sizeof(EntityID));
+
+        NetworkOp op = (NetworkOp)(comp >> 30);
+        comp = comp & (~0 >> 2);
+
+        switch (op)
+        {
+            case NetworkOp::create:
+            {
+                std::cout << "HERE create" << std::endl;
+                // Entity
+                // REMINDER: include new case for new components
+                if (comp == 0)
+                    scene.NewEntity();
+                else if (comp == GetId<Transform>())
+                    scene.Assign<Transform>(ent);
+                else if (comp == GetId<ObjectToWorld>())
+                    scene.Assign<ObjectToWorld>(ent);
+                else if (comp == GetId<Parent>())
+                    scene.Assign<Parent>(ent);
+                else if (comp == GetId<Despawn>())
+                    scene.Assign<Despawn>(ent);
+                else if (comp == GetId<Children>())
+                    scene.Assign<Children>(ent);
+                else if (comp == GetId<Collider>())
+                    scene.Assign<Collider>(ent);
+                else if (comp == GetId<Rigidbody>())
+                    scene.Assign<Rigidbody>(ent);
+                else if (comp == GetId<Collision>())
+                    scene.Assign<Collision>(ent);
+                else if (comp == GetId<GroundDrop>())
+                    scene.Assign<GroundDrop>(ent);
+                else if (comp == GetId<Event>())
+                    scene.Assign<Event>(ent);
+                else if (comp == GetId<Camera>())
+                    scene.Assign<Camera>(ent);
+                else if (comp == GetId<User>())
+                    scene.Assign<User>(ent);
+                else if (comp == GetId<HealthPack>())
+                    scene.Assign<HealthPack>(ent);
+                else if (comp == GetId<AmmoPack>())
+                    scene.Assign<AmmoPack>(ent);
+                else if (comp == GetId<DeathAnimator>())
+                    scene.Assign<DeathAnimator>(ent);
+                else if (comp == GetId<Health>())
+                    scene.Assign<Health>(ent);
+                else if (comp == GetId<Weapon>())
+                    scene.Assign<Weapon>(ent);
+                else if (comp == GetId<Bullet>())
+                    scene.Assign<Bullet>(ent);
+                else if (comp == GetId<AI>())
+                    scene.Assign<AI>(ent);
+                else if (comp == GetId<Crate>())
+                    scene.Assign<Crate>(ent);
+                else if (comp == GetId<Color>())
+                    scene.Assign<Color>(ent);
+                else if (comp == GetId<Outline>())
+                    scene.Assign<Outline>(ent);
+                else if (comp == GetId<Renderer>())
+                    scene.Assign<Renderer>(ent);
+                else if (comp == GetId<Arc>())
+                    scene.Assign<Arc>(ent);
+                else if (comp == GetId<Polygon>())
+                    scene.Assign<Polygon>(ent);
+                break;
+            }
+            case NetworkOp::modify:
+            {
+                int headerSize = sizeof(EntityID) + sizeof(ComponentID);
+                char *compData = reinterpret_cast<char *>(scene.GetByID(ent, comp));
+                if (compData == nullptr) break;
+                for (int i = 0; i < packets[i].size - headerSize; i++) compData[i] = (packet + headerSize)[i];
+                break;
+            }
+            case NetworkOp::destroy:
+            {
+                std::cout << "HERE delete" << std::endl;
+                if (comp == 0)
+                {
+                    scene.DestroyEntity(ent);
+                }
+                else
+                {
+                    scene.RemoveById(ent, comp);
+                }
+                break;
+            }
+        }
+
+        delete[] packet;
+    }
+
+    packets.clear();
+}
+
+void sendPackets(std::vector<Packet> &packets)
+{
+    EM_ASM({
+        let packets = new Uint8Array(Module.HEAPU8.buffer, $0, $1 * 16);
+        for (let i = 0; i < $1; i++)
+        {
+            Module.broadcast(packets.slice(i * 16, (i + 1) * 16));
+        }
+    },
+           packets.data(), packets.size());
+}
+
+void NetworkingServerSystem(Scene &scene, std::vector<Packet> &packets)
+{
+    for (ComponentID comp = 1; comp < s_componentCounter; comp++)
+    {
+        for (EntityID ent : SceneView<>(scene))
+        {
+            char *componentData = reinterpret_cast<char *>(scene.GetByID(ent, comp));
+            if (componentData == nullptr) continue;
+
+            // TODO:: HANDLE VECTORS, POLYGON and CHILDREN
+            if (comp == GetId<Polygon>() || comp == GetId<Children>()) continue;
+
+            int size = scene.GetComponentSize(comp);
+            // std::cout << size << std::endl;
+            int headerSize = sizeof(EntityID) + sizeof(ComponentID);
+
+            char *buffer = new char[headerSize + size];
+            // char *buffer = nullptr;
+            *reinterpret_cast<EntityID *>(buffer) = ent;
+            *reinterpret_cast<ComponentID *>(buffer + sizeof(EntityID)) = comp | (NetworkOp::modify << 30);
+            for (int i = headerSize; i < size; i++) buffer[i] = componentData[i];
+            packets.push_back({headerSize + size, buffer});
+        }
+    }
+
+    sendPackets(packets);
+
+    for (int i = 0; i < packets.size(); i++)
+    {
+        delete[] packets[i].buffer;
+    }
+    packets.clear();
+}
+
 void onMouseDown(int x, int y, int button)
 {
     if (button == 0)
-        immediate_key_state.set(Controls::fire);
-    immediate_mouse_pos.x = x;
-    immediate_mouse_pos.y = y;
+        key_state.set(Controls::fire);
+    mouse_pos.x = x;
+    mouse_pos.y = y;
 }
 
 void onMouseMove(int x, int y)
 {
-    immediate_mouse_pos.x = x;
-    immediate_mouse_pos.y = y;
+    mouse_pos.x = x;
+    mouse_pos.y = y;
 }
 
 void onMouseUp(int x, int y, int button)
 {
     if (button == 0)
-        immediate_key_state.reset(Controls::fire);
-    immediate_mouse_pos.x = x;
-    immediate_mouse_pos.y = y;
+        key_state.reset(Controls::fire);
+    mouse_pos.x = x;
+    mouse_pos.y = y;
 }
 
 void onKeyDown(int key)
 {
-    immediate_key_state.set(key);
+    key_state.set(key);
 }
 
 void onKeyUp(int key)
 {
-    immediate_key_state.reset(key);
+    key_state.reset(key);
 }
 
-void start()
+void onPacket(int pPacket, int size)
 {
-    EntityID root = scene.NewEntity();
-    assert(root == ROOT_ENTITY);
-
-    Transform *pTransform = scene.Assign<Transform>(ROOT_ENTITY);
-    scene.Assign<ObjectToWorld>(ROOT_ENTITY);
-    scene.Assign<Children>(ROOT_ENTITY);
-    loadScene(scene);
+    packets.push_back({size, reinterpret_cast<char *>(pPacket)});
 }
 
 void update(double dt)
 {
+#ifndef SERVER
     screen_size.x = EM_ASM_DOUBLE({
-        window.canvas.width = window.canvas.clientWidth;
-        return window.canvas.width;
+        Module.canvas.width = Module.canvas.clientWidth;
+        return Module.canvas.width;
     });
 
     screen_size.y = EM_ASM_DOUBLE({
-        window.canvas.height = window.canvas.clientHeight;
-        return window.canvas.height;
+        Module.canvas.height = Module.canvas.clientHeight;
+        return Module.canvas.height;
     });
 
     EM_ASM({
-        let context = window.context;
+        let context = Module.context;
         context.clearRect(0, 0, $1, $2);
     },
            screen_size.x, screen_size.y);
+#endif
 
     elapsedTime += dt;
-    mouse_pos = immediate_mouse_pos;
-    key_state = immediate_key_state;
 
-    RigidbodySystem(scene, dt);
-    ObjectToWorldSystem(scene);
-    CollisionSystem(scene);
-    ObjectToWorldSystem(scene);
+#ifdef SERVER
+    // RigidbodySystem(scene, dt);
+    // ObjectToWorldSystem(scene);
+    // CollisionSystem(scene);
+    // ObjectToWorldSystem(scene);
+    // DespawnSystem(scene, dt);
+    // GroundDropSystem(scene, elapsedTime);
+    // InteractSystem(scene);
+    // DeathAnimatorSystem(scene, dt);
+    // HealthSystem(scene);
+    // EventSystem(scene);
+    NetworkingServerSystem(scene, packets);
+#endif
 
-    PlayerMovementSystem(scene);
-    DespawnSystem(scene, dt);
-    GroundDropSystem(scene, elapsedTime);
-    InteractSystem(scene);
-    DeathAnimatorSystem(scene, dt);
+#ifndef SERVER
+    // PlayerMovementSystem(scene);
+    // CameraFollowSystem(scene);
+    // WorldToViewSystem(scene);
+    // RenderSystem(scene);
+    NetworkingClientSystem(scene, packets);
+#endif
 
-    CameraFollowSystem(scene);
-    WorldToViewSystem(scene);
-    HealthSystem(scene);
-    RenderSystem(scene);
-    EventSystem(scene);
-
-    // for (EntityID ent : SceneView<Crate, Children>(scene))
+    // for (EntityID ent : SceneView<Camera, Transform>(scene))
     // {
-    //     Children *pChildren = scene.Get<Children>(ent);
-    //     Transform *pTransform = scene.Get<Transform>(pChildren->children[0]);
+    //     // Children *pChildren = scene.Get<Children>(ent);
+    //     // pChildren->children[0]
+    //     Transform *pTransform = scene.Get<Transform>(ent);
 
     //     // Do stuff
     //     // pHealth->health = std::max(0, pHealth->health - 1);
-    //     pTransform->rotation = pTransform->rotation + dt * 10;
+    //     pTransform->rotation = pTransform->rotation + dt * 1;
     // }
     last_key_state = key_state;
 }
 
 int main(int argc, char *argv[])
 {
+#ifndef SERVER
     EM_ASM({
-        window.canvas = document.getElementById('canvas');
-        window.context = window.canvas.getContext('2d');
+        Module.canvas = document.getElementById('canvas');
+        Module.context = Module.canvas.getContext('2d');
 
         let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4});
 
-        window.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); };
-        window.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); };
-        window.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); };
-        window.canvas.onkeydown = function(evt)
+        Module.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); };
+        Module.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); };
+        Module.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); };
+        Module.canvas.onkeydown = function(evt)
         {
             let key = keyMap[evt.key];
             if (key != null)
                 Module.onKeyDown(key);
         };
-        window.canvas.onkeyup = function(evt)
+        Module.canvas.onkeyup = function(evt)
         {
             let key = keyMap[evt.key];
             if (key != null)
@@ -629,9 +775,108 @@ int main(int argc, char *argv[])
         }
 
         request = window.requestAnimationFrame(update);
-    });
 
-    start();
+        // SETUP WEBSOCKET
+        console.log('attempting connection to ws://' + window.location.hostname + ':' + $0);
+
+        Module.socket = new WebSocket('ws://' + window.location.hostname + ':' + $0);
+        Module.socket.binaryType = 'arraybuffer';
+
+        Module.socket.onclose = function(event)
+        {
+            console.log('closed code:' + event.code + ' reason:' + event.reason + ' wasClean:' + event.wasClean);
+        };
+        Module.socket.onmessage = function(event)
+        {
+            // console.log(event.data);
+            let array = new Uint8Array(event.data);
+            let pPacket = Module._malloc(array.length);
+            Module.HEAPU8.set(array, pPacket);
+            Module.onPacket(pPacket, array.length);
+        };
+        Module.socket.onopen = function(event)
+        {
+            console.log('connected');
+            // let array = ([ 10, 20, 30 ]);
+            // Module.socket.send(new Int8Array(array));
+        };
+    },
+           PORT);
+
+#endif
+
+#ifdef SERVER
+    EM_ASM({
+        var Server = require('ws').Server;
+        let wss = new Server({port : $0});
+        wss.binaryType = 'arraybuffer';
+
+        let messages = [];
+
+        wss.on(
+            'close', function() {
+                console.log('disconnected');
+            });
+
+        wss.on(
+            'listening', function() {
+                console.log('Start on port ' + $0);
+            });
+
+        wss.broadcast = function(message)
+        {
+            for (let ws of wss.clients)
+            {
+                ws.send(message);
+            }
+        };
+
+        Module.broadcast = wss.broadcast;
+
+        wss.on(
+            'connection', function(ws) {
+                for (let i = 0; i < messages.length; i++)
+                {
+                    ws.send(messages[i]);
+                }
+                ws.on(
+                    'message', function(message) {
+                        ws.send(message);
+                        console.log(message);
+                    });
+            });
+
+        function clock(start)
+        {
+            if (!start) return process.hrtime();
+            var end = process.hrtime(start);
+            return Math.round((end[0] * 1000) + (end[1] / 1000000));
+        }
+
+        let request = 0;
+        let lastTime = clock();
+
+        function update()
+        {
+            let timestamp = clock();
+            let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
+            lastTime = timestamp;
+            Module.update(dt);
+            request = setTimeout(update, (1 / 1) * 3000);
+        }
+
+        request = setTimeout(update, 0);
+    },
+           PORT);
+#endif
+
+    EntityID root = scene.NewEntity();
+    assert(root == ROOT_ENTITY);
+
+    Transform *pTransform = scene.Assign<Transform>(ROOT_ENTITY);
+    scene.Assign<ObjectToWorld>(ROOT_ENTITY);
+    scene.Assign<Children>(ROOT_ENTITY);
+    loadScene(scene);
 }
 
 EMSCRIPTEN_BINDINGS(my_module)
@@ -646,6 +891,7 @@ EMSCRIPTEN_BINDINGS(my_module)
     function("onMouseUp", &onMouseUp);
     function("onKeyDown", &onKeyDown);
     function("onKeyUp", &onKeyUp);
+    function("onPacket", &onPacket, allow_raw_pointers());
 }
 
 #endif
