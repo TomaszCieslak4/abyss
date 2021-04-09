@@ -1679,17 +1679,17 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  17648: function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) {Module.context.save(); Module.context.setTransform($0, $1, $2, $3, $4, $5); Module.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`; Module.context.beginPath();},  
- 17819: function($0, $1, $2, $3, $4) {Module.context.lineWidth = $0; Module.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`; Module.context.scale(1 - $0 / 2, 1 - $0 / 2);},  
- 17965: function($0, $1) {Module.context.arc(0, 0, 0.5, $0, $1);},  
- 18008: function($0, $1) {let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2); Module.context.moveTo(verticies[0], verticies[1]); for (let i = 1; i < $1; i++) { Module.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]); }},  
- 18228: function() {Module.context.stroke(); Module.context.restore();},  
- 18283: function() {Module.context.fill(); Module.context.restore();},  
- 18336: function($0, $1) {let packets = new Uint8Array(Module.HEAPU8.buffer, $0, $1 * 16); for (let i = 0; i < $1; i++) { Module.broadcast(packets.slice(i * 16, (i + 1) * 16)); }},  
- 18493: function() {Module.canvas.width = Module.canvas.clientWidth; return Module.canvas.width;},  
- 18574: function() {Module.canvas.height = Module.canvas.clientHeight; return Module.canvas.height;},  
- 18658: function($0, $1, $2) {let context = Module.context; context.clearRect(0, 0, $1, $2);},  
- 18725: function($0) {Module.canvas = document.getElementById('canvas'); Module.context = Module.canvas.getContext('2d'); let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4}); Module.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); }; Module.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); }; Module.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); }; Module.canvas.onkeydown = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyDown(key); }; Module.canvas.onkeyup = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyUp(key); }; let request = 0; let lastTime = performance.now(); function update(timestamp) { let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60); lastTime = timestamp; Module.update(dt); request = window.requestAnimationFrame(update); } request = window.requestAnimationFrame(update); console.log('attempting connection to ws://' + window.location.hostname + ':' + $0); Module.socket = new WebSocket('ws://' + window.location.hostname + ':' + $0); Module.socket.binaryType = 'arraybuffer'; Module.socket.onclose = function(event) { console.log('closed code:' + event.code + ' reason:' + event.reason + ' wasClean:' + event.wasClean); }; Module.socket.onmessage = function(event) { let array = new Uint8Array(event.data); let pPacket = Module._malloc(array.length); Module.HEAPU8.set(array, pPacket); Module.onPacket(pPacket, array.length); }; Module.socket.onopen = function(event) { console.log('connected'); };}
+  20592: function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) {Module.context.save(); Module.context.setTransform($0, $1, $2, $3, $4, $5); Module.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`; Module.context.beginPath();},  
+ 20763: function($0, $1, $2, $3, $4) {Module.context.lineWidth = $0; Module.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`; Module.context.scale(1 - $0 / 2, 1 - $0 / 2);},  
+ 20909: function($0, $1) {Module.context.arc(0, 0, 0.5, $0, $1);},  
+ 20952: function($0, $1) {let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2); Module.context.moveTo(verticies[0], verticies[1]); for (let i = 1; i < $1; i++) { Module.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]); }},  
+ 21172: function() {Module.context.stroke(); Module.context.restore();},  
+ 21227: function() {Module.context.fill(); Module.context.restore();},  
+ 21280: function($0, $1) {let user = new Uint32Array(Module.HEAPU8.buffer, $0, 8); for (let client of Module.socket.clients) { if (client.entityIndex == user[0] && client.entityVersion == user[1]) { client.send(new Uint8Array(Module.HEAPU8.buffer, $0 + 8, $1 - 8)); } }},  
+ 21528: function() {Module.canvas.width = Module.canvas.clientWidth; return Module.canvas.width;},  
+ 21609: function() {Module.canvas.height = Module.canvas.clientHeight; return Module.canvas.height;},  
+ 21693: function($0, $1, $2) {let context = Module.context; context.clearRect(0, 0, $1, $2);},  
+ 21760: function($0) {Module.canvas = document.getElementById('canvas'); Module.context = Module.canvas.getContext('2d'); let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4}); Module.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); }; Module.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); }; Module.canvas.onmousemove = function(evt) { Module.onMouseMove(evt.clientX, evt.clientY); }; Module.canvas.onkeydown = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyDown(key); }; Module.canvas.onkeyup = function(evt) { let key = keyMap[evt.key]; if (key != null) Module.onKeyUp(key); }; let request = 0; let lastTime = performance.now(); function update(timestamp) { let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60); lastTime = timestamp; Module.update(dt); request = window.requestAnimationFrame(update); } request = window.requestAnimationFrame(update); console.log('attempting connection to ws://' + window.location.hostname + ':' + $0); Module.socket = new WebSocket('ws://' + window.location.hostname + ':' + $0); Module.socket.binaryType = 'arraybuffer'; Module.socket.onclose = function(event) { console.log('closed code:' + event.code + ' reason:' + event.reason + ' wasClean:' + event.wasClean); }; Module.socket.onmessage = function(event) { let array = new Uint8Array(event.data); let buffer = Module.onPacket(array.length); new Uint8Array(Module.HEAPU8.buffer).set(array, buffer); }; Module.socket.onopen = function(event) { console.log('connected'); };}
 };
 
 
@@ -1758,10 +1758,6 @@ var ASM_CONSTS = {
       var js = jsStackTrace();
       if (Module['extraStackTrace']) js += '\n' + Module['extraStackTrace']();
       return demangleAll(js);
-    }
-
-  function ___assert_fail(condition, filename, line, func) {
-      abort('Assertion failed: ' + UTF8ToString(condition) + ', at: ' + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
     }
 
   var ExceptionInfoAttrs={DESTRUCTOR_OFFSET:0,REFCOUNT_OFFSET:4,TYPE_OFFSET:8,CAUGHT_OFFSET:12,RETHROWN_OFFSET:13,SIZE:16};
@@ -5771,7 +5767,6 @@ function intArrayToString(array) {
 
 
 var asmLibraryArg = {
-  "__assert_fail": ___assert_fail,
   "__cxa_allocate_exception": ___cxa_allocate_exception,
   "__cxa_atexit": ___cxa_atexit,
   "__cxa_throw": ___cxa_throw,

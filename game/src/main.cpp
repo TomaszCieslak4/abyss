@@ -1,6 +1,3 @@
-#ifndef TEST_H
-#define TEST_H
-
 #include <vector>
 #include <iostream>
 #include <bitset>
@@ -9,12 +6,16 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
-#include "./vector.cpp"
-#include "./matrix.cpp"
-#include "./components.cpp"
-#include "./sat.cpp"
-#include "./scene.cpp"
-#include "./game.cpp"
+#include "prefabs.hpp"
+#include "vec2.hpp"
+#include "matrix.hpp"
+#include "components.hpp"
+#include "sat.hpp"
+#include "scene.hpp"
+#include "game.hpp"
+#include "network.hpp"
+#include "utils.hpp"
+#include "scene_view.hpp"
 
 // #define SERVER
 
@@ -33,28 +34,25 @@ enum Controls
     MAX = fire
 };
 
-enum NetworkOp
-{
-    modify,
-    create,
-    destroy,
-};
-
 struct Packet
 {
     int size;
     char *buffer;
 };
 
-Scene scene;
+World::Scene scene;
 double elapsedTime;
 std::bitset<Controls::MAX + 1> key_state;
 std::bitset<Controls::MAX + 1> last_key_state;
 Vec2 mouse_pos;
 Vec2 screen_size;
-std::vector<Packet> packets;
 
-void calculateMatrix(Scene &scene, EntityID ent)
+constexpr int BUFFER_SIZE = 10 * 1024 * 1024;
+std::vector<uint8_t> tempPackets(BUFFER_SIZE, 0);
+std::vector<uint8_t> packets(BUFFER_SIZE, 0);
+int packetsSize = sizeof(World::EntityID);
+
+void calculateMatrix(World::Scene &scene, World::EntityID ent)
 {
     Transform *pTransform = scene.Get<Transform>(ent);
     ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(ent);
@@ -68,27 +66,27 @@ void calculateMatrix(Scene &scene, EntityID ent)
 
     Children *pChildren = scene.Get<Children>(ent);
     if (pChildren == nullptr) return;
-    for (EntityID ent : pChildren->children)
+    for (World::EntityID ent : pChildren->children)
     {
         calculateMatrix(scene, ent);
     }
 }
 
-void ObjectToWorldSystem(Scene &scene)
+void ObjectToWorldSystem(World::Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(ROOT_ENTITY);
+    Children *pChildren = scene.Get<Children>(World::ROOT_ENTITY);
 
-    for (EntityID ent : pChildren->children)
+    for (World::EntityID ent : pChildren->children)
     {
         calculateMatrix(scene, ent);
     }
 }
 
-void WorldToViewSystem(Scene &scene)
+void WorldToViewSystem(World::Scene &scene)
 {
     Mat3 identity = Mat3::identity();
 
-    for (EntityID ent : SceneView<Transform, Camera>(scene))
+    for (World::EntityID ent : SceneView<Transform, Camera>(scene))
     {
         Transform *pTransform = scene.Get<Transform>(ent);
         Camera *pCamera = scene.Get<Camera>(ent);
@@ -101,7 +99,7 @@ void WorldToViewSystem(Scene &scene)
     }
 }
 
-void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
+void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
 {
     Color *pColor = scene.Get<Color>(ent);
     ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(ent);
@@ -178,28 +176,28 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
     Children *pChildren = scene.Get<Children>(ent);
     if (pChildren == nullptr) return;
 
-    for (EntityID ent : pChildren->children)
+    for (World::EntityID ent : pChildren->children)
     {
         renderEntity(scene, ent, view_matrix);
     }
 }
 
-void RenderSystem(Scene &scene)
+void RenderSystem(World::Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(ROOT_ENTITY);
+    Children *pChildren = scene.Get<Children>(World::ROOT_ENTITY);
 
-    for (EntityID cam : SceneView<Camera>(scene))
+    for (World::EntityID cam : SceneView<Camera>(scene))
     {
         Camera *pCamera = scene.Get<Camera>(cam);
 
-        for (EntityID ent : pChildren->children)
+        for (World::EntityID ent : pChildren->children)
         {
             renderEntity(scene, ent, pCamera->world_to_view);
         }
     }
 }
 
-void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID topEnt, EntityID otherTopEnt)
+void checkCollisionHelper(World::Scene &scene, World::EntityID ent, World::EntityID other, World::EntityID topEnt, World::EntityID otherTopEnt)
 {
     if (scene.Get<Collider>(ent) != nullptr)
     {
@@ -207,7 +205,7 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
 
         if (sat(scene, ent, other, mtv))
         {
-            EntityID collisionEvent = scene.NewEntity();
+            World::EntityID collisionEvent = scene.NewEntity();
             scene.Assign<Event>(collisionEvent);
             Collision *pCollision = scene.Assign<Collision>(collisionEvent);
             pCollision->source = topEnt;
@@ -218,19 +216,19 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
 
     Children *pChildren = scene.Get<Children>(ent);
     if (pChildren == nullptr) return;
-    for (EntityID ent : pChildren->children)
+    for (World::EntityID ent : pChildren->children)
     {
         checkCollisionHelper(scene, ent, other, topEnt, otherTopEnt);
     }
 }
 
-void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
+void checkCollision(World::Scene &scene, World::EntityID ent, World::EntityID topEnt)
 {
-    Children *pRootChildren = scene.Get<Children>(ROOT_ENTITY);
+    Children *pRootChildren = scene.Get<Children>(World::ROOT_ENTITY);
 
     if (scene.Get<Collider>(ent) != nullptr)
     {
-        for (EntityID rootEnt : pRootChildren->children)
+        for (World::EntityID rootEnt : pRootChildren->children)
         {
             if (topEnt == rootEnt) continue;
             checkCollisionHelper(scene, rootEnt, ent, topEnt, rootEnt);
@@ -239,15 +237,15 @@ void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
 
     Children *pChildren = scene.Get<Children>(ent);
     if (pChildren == nullptr) return;
-    for (EntityID ent : pChildren->children)
+    for (World::EntityID ent : pChildren->children)
     {
         checkCollision(scene, ent, topEnt);
     }
 }
 
-void RigidbodySystem(Scene &scene, double dt)
+void RigidbodySystem(World::Scene &scene, double dt)
 {
-    for (EntityID ent : SceneView<Rigidbody, Transform>(scene))
+    for (World::EntityID ent : SceneView<Rigidbody, Transform>(scene))
     {
         Transform *pTransform = scene.Get<Transform>(ent);
         Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
@@ -255,16 +253,16 @@ void RigidbodySystem(Scene &scene, double dt)
     }
 }
 
-void CollisionSystem(Scene &scene)
+void CollisionSystem(World::Scene &scene)
 {
     // Generate Collisions
-    for (EntityID ent : SceneView<ObjectToWorld, Rigidbody, Transform>(scene))
+    for (World::EntityID ent : SceneView<ObjectToWorld, Rigidbody, Transform>(scene))
     {
         checkCollision(scene, ent, ent);
     }
 
     // Resolve Collisions
-    for (EntityID ent : SceneView<Collision, Event>(scene))
+    for (World::EntityID ent : SceneView<Collision, Event>(scene))
     {
         Collision *pCollision = scene.Get<Collision>(ent);
         Transform *pTransform = scene.Get<Transform>(pCollision->source);
@@ -272,17 +270,17 @@ void CollisionSystem(Scene &scene)
     }
 }
 
-void EventSystem(Scene &scene)
+void EventSystem(World::Scene &scene)
 {
-    for (EntityID ent : SceneView<Event>(scene))
+    for (World::EntityID ent : SceneView<Event>(scene))
     {
         scene.DestroyEntity(ent);
     }
 }
 
-void GroundDropSystem(Scene &scene, double elapsedTime)
+void GroundDropSystem(World::Scene &scene, double elapsedTime)
 {
-    for (EntityID ent : SceneView<GroundDrop>(scene))
+    for (World::EntityID ent : SceneView<GroundDrop>(scene))
     {
         double t = (sin(elapsedTime * 3) + 1) / 2;
         Children *pChildren = scene.Get<Children>(ent);
@@ -295,10 +293,10 @@ void GroundDropSystem(Scene &scene, double elapsedTime)
     }
 }
 
-void PlayerMovementSystem(Scene &scene)
+void PlayerMovementSystem(World::Scene &scene)
 {
     const double MOVEMENT_SPEED = 10;
-    for (EntityID ent : SceneView<User, Rigidbody, Transform>(scene))
+    for (World::EntityID ent : SceneView<User, Rigidbody, Transform>(scene))
     {
         Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
 
@@ -321,7 +319,7 @@ void PlayerMovementSystem(Scene &scene)
             pRigidbody->velocity.x += MOVEMENT_SPEED;
         }
 
-        for (EntityID cam : SceneView<Camera, ObjectToWorld>(scene))
+        for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene))
         {
             ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
 
@@ -333,17 +331,17 @@ void PlayerMovementSystem(Scene &scene)
     }
 }
 
-void InteractSystem(Scene &scene)
+void InteractSystem(World::Scene &scene)
 {
     const double INTERACT_RANGE = 2.7;
 
-    for (EntityID usr : SceneView<User, Children, Transform, Health>(scene))
+    for (World::EntityID usr : SceneView<User, Children, Transform, Health>(scene))
     {
         Transform *pUsrTransform = scene.Get<Transform>(usr);
         double min_dist = INFINITY;
-        EntityID closest_drop = INVALID_ENTITY;
+        World::EntityID closest_drop = INVALID_ENTITY;
 
-        for (EntityID ent : SceneView<GroundDrop, Transform>(scene))
+        for (World::EntityID ent : SceneView<GroundDrop, Transform>(scene))
         {
             Transform *pTransform = scene.Get<Transform>(ent);
 
@@ -374,7 +372,7 @@ void InteractSystem(Scene &scene)
         if (pAmmoPack != nullptr)
         {
             Children *pChildren = scene.Get<Children>(usr);
-            EntityID spawnpoint = pChildren->children.back();
+            World::EntityID spawnpoint = pChildren->children.back();
             Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
 
             Weapon *pWeapon = scene.Get<Weapon>(pSpawnpointChildren->children[0]);
@@ -386,23 +384,23 @@ void InteractSystem(Scene &scene)
         }
 
         Children *pChildren = scene.Get<Children>(closest_drop);
-        EntityID drop = pChildren->children.back();
+        World::EntityID drop = pChildren->children.back();
         Weapon *pWeapon = scene.Get<Weapon>(drop);
 
         if (pWeapon != nullptr)
         {
             Children *pChildren = scene.Get<Children>(usr);
-            EntityID spawnpoint = pChildren->children.back();
+            World::EntityID spawnpoint = pChildren->children.back();
             Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
 
-            setParent(scene, drop, spawnpoint);
+            Utils::setParent(scene, drop, spawnpoint);
             Transform *pTransform = scene.Get<Transform>(drop);
             pTransform->pos = Vec2::zero();
 
             if (pSpawnpointChildren->children.size() > 0)
             {
-                EntityID oldWeapon = pSpawnpointChildren->children[0];
-                setParent(scene, oldWeapon, closest_drop);
+                World::EntityID oldWeapon = pSpawnpointChildren->children[0];
+                Utils::setParent(scene, oldWeapon, closest_drop);
                 Transform *pTransform = scene.Get<Transform>(oldWeapon);
                 pTransform->pos = Vec2::zero();
                 pTransform->rotation = 0;
@@ -418,23 +416,23 @@ void InteractSystem(Scene &scene)
     }
 }
 
-void DeathAnimatorSystem(Scene &scene, double dt)
+void DeathAnimatorSystem(World::Scene &scene, double dt)
 {
-    for (EntityID ent : SceneView<DeathAnimator>(scene))
+    for (World::EntityID ent : SceneView<DeathAnimator>(scene))
     {
         Transform *pTransform = scene.Get<Transform>(ent);
 
         pTransform->scale = Vec2::lerp(pTransform->scale, Vec2::zero(), 10 * dt);
         if (pTransform->scale.sqr_magnitude() <= 0.01)
         {
-            destroyEntity(scene, ent);
+            Utils::destroyEntity(scene, ent);
         }
     }
 }
 
-void HealthSystem(Scene &scene)
+void HealthSystem(World::Scene &scene)
 {
-    for (EntityID ent : SceneView<Health>(scene))
+    for (World::EntityID ent : SceneView<Health>(scene))
     {
         Health *pHealth = scene.Get<Health>(ent);
         Crate *pCrate = scene.Get<Crate>(ent);
@@ -445,9 +443,9 @@ void HealthSystem(Scene &scene)
             Color *pColor = scene.Get<Color>(pChildren->children.front());
 
             double t = (double)pHealth->health / (double)pHealth->max_health;
-            pColor->r = lerp(250, 35, t);
-            pColor->g = lerp(83, 142, t);
-            pColor->b = lerp(41, 249, t);
+            pColor->r = Utils::lerp(250, 35, t);
+            pColor->g = Utils::lerp(83, 142, t);
+            pColor->b = Utils::lerp(41, 249, t);
             // let obj = this.gameObject.instantiate(this.lootPool[Math.round(Math.random() * (this.lootPool.length - 1))]);
             // let drop = this.gameObject.instantiate(GroundDropPrefab, this.gameObject.transform.position);
             // drop.getComponent(GroundDrop)!.obj = obj.getComponent(Interactable);
@@ -461,19 +459,19 @@ void HealthSystem(Scene &scene)
             Arc *pArc = scene.Get<Arc>(pChildren->children[pChildren->children.size() - 2]);
 
             double t = (double)pHealth->health / (double)pHealth->max_health;
-            pArc->start_angle = lerp(3 * M_PI_2 * 0.95, M_PI_2 * 1.05, t);
+            pArc->start_angle = Utils::lerp(3 * M_PI_2 * 0.95, M_PI_2 * 1.05, t);
         }
     }
 }
 
-void CameraFollowSystem(Scene &scene)
+void CameraFollowSystem(World::Scene &scene)
 {
     const double MOVEMENT_SPEED = 10;
-    for (EntityID cam : SceneView<Camera, Transform>(scene))
+    for (World::EntityID cam : SceneView<Camera, Transform>(scene))
     {
         Transform *pCamTransform = scene.Get<Transform>(cam);
 
-        for (EntityID ent : SceneView<User, Transform>(scene))
+        for (World::EntityID ent : SceneView<User, Transform>(scene))
         {
             Transform *pTransform = scene.Get<Transform>(ent);
             pCamTransform->pos = Vec2::lerp(pCamTransform->pos, pTransform->pos, 0.05);
@@ -481,9 +479,9 @@ void CameraFollowSystem(Scene &scene)
     }
 }
 
-void DespawnSystem(Scene &scene, double dt)
+void DespawnSystem(World::Scene &scene, double dt)
 {
-    for (EntityID ent : SceneView<GroundDrop, Despawn>(scene))
+    for (World::EntityID ent : SceneView<GroundDrop, Despawn>(scene))
     {
         Despawn *pDespawn = scene.Get<Despawn>(ent);
 
@@ -496,85 +494,126 @@ void DespawnSystem(Scene &scene, double dt)
     }
 }
 
-void NetworkingClientSystem(Scene &scene, std::vector<Packet> &packets)
+void NetworkingClientSystem(World::Scene &scene)
 {
-    for (int i = 0; i < packets.size(); i++)
+    int packetPos = 0;
+
+    while (packetPos < packetsSize)
     {
-        char *packet = packets[i].buffer;
+        World::EntityID ent = reinterpret_cast<World::EntityID &>(packets[packetPos]);
+        packetPos += sizeof(World::EntityID);
+        World::ComponentID comp = reinterpret_cast<World::ComponentID &>(packets[packetPos]);
+        packetPos += sizeof(World::ComponentID);
 
-        EntityID ent = *reinterpret_cast<EntityID *>(packet);
-        ComponentID comp = *reinterpret_cast<ComponentID *>(packet + sizeof(EntityID));
-
-        NetworkOp op = (NetworkOp)(comp >> 30);
-        comp = comp & (~0 >> 2);
+        NetworkOp op = static_cast<NetworkOp>(comp >> 30);
+        comp = comp & ((1U << 31U) - 1U);
 
         switch (op)
         {
+            case NetworkOp::setUser:
+            {
+                std::cout << "UserId: " << ent << std::endl;
+                break;
+            }
             case NetworkOp::create:
             {
-                std::cout << "HERE create" << std::endl;
                 // Entity
-                // REMINDER: include new case for new components
                 if (comp == 0)
-                    scene.NewEntity();
-                else if (comp == GetId<Transform>())
+                    scene.NewEntity(ent);
+                else if (comp == World::GetId<Transform>())
                     scene.Assign<Transform>(ent);
-                else if (comp == GetId<ObjectToWorld>())
+                else if (comp == World::GetId<ObjectToWorld>())
                     scene.Assign<ObjectToWorld>(ent);
-                else if (comp == GetId<Parent>())
+                else if (comp == World::GetId<Parent>())
                     scene.Assign<Parent>(ent);
-                else if (comp == GetId<Despawn>())
+                else if (comp == World::GetId<Despawn>())
                     scene.Assign<Despawn>(ent);
-                else if (comp == GetId<Children>())
+                else if (comp == World::GetId<Children>())
                     scene.Assign<Children>(ent);
-                else if (comp == GetId<Collider>())
+                else if (comp == World::GetId<Collider>())
                     scene.Assign<Collider>(ent);
-                else if (comp == GetId<Rigidbody>())
+                else if (comp == World::GetId<Rigidbody>())
                     scene.Assign<Rigidbody>(ent);
-                else if (comp == GetId<Collision>())
+                else if (comp == World::GetId<Collision>())
                     scene.Assign<Collision>(ent);
-                else if (comp == GetId<GroundDrop>())
+                else if (comp == World::GetId<GroundDrop>())
                     scene.Assign<GroundDrop>(ent);
-                else if (comp == GetId<Event>())
+                else if (comp == World::GetId<Event>())
                     scene.Assign<Event>(ent);
-                else if (comp == GetId<Camera>())
+                else if (comp == World::GetId<Camera>())
                     scene.Assign<Camera>(ent);
-                else if (comp == GetId<User>())
+                else if (comp == World::GetId<User>())
                     scene.Assign<User>(ent);
-                else if (comp == GetId<HealthPack>())
+                else if (comp == World::GetId<HealthPack>())
                     scene.Assign<HealthPack>(ent);
-                else if (comp == GetId<AmmoPack>())
+                else if (comp == World::GetId<AmmoPack>())
                     scene.Assign<AmmoPack>(ent);
-                else if (comp == GetId<DeathAnimator>())
+                else if (comp == World::GetId<DeathAnimator>())
                     scene.Assign<DeathAnimator>(ent);
-                else if (comp == GetId<Health>())
+                else if (comp == World::GetId<Health>())
                     scene.Assign<Health>(ent);
-                else if (comp == GetId<Weapon>())
+                else if (comp == World::GetId<Weapon>())
                     scene.Assign<Weapon>(ent);
-                else if (comp == GetId<Bullet>())
+                else if (comp == World::GetId<Bullet>())
                     scene.Assign<Bullet>(ent);
-                else if (comp == GetId<AI>())
+                else if (comp == World::GetId<AI>())
                     scene.Assign<AI>(ent);
-                else if (comp == GetId<Crate>())
+                else if (comp == World::GetId<Crate>())
                     scene.Assign<Crate>(ent);
-                else if (comp == GetId<Color>())
+                else if (comp == World::GetId<Color>())
                     scene.Assign<Color>(ent);
-                else if (comp == GetId<Outline>())
+                else if (comp == World::GetId<Outline>())
                     scene.Assign<Outline>(ent);
-                else if (comp == GetId<Renderer>())
+                else if (comp == World::GetId<Renderer>())
                     scene.Assign<Renderer>(ent);
-                else if (comp == GetId<Arc>())
+                else if (comp == World::GetId<Arc>())
                     scene.Assign<Arc>(ent);
-                else if (comp == GetId<Polygon>())
+                else if (comp == World::GetId<Polygon>())
                     scene.Assign<Polygon>(ent);
                 break;
             }
             case NetworkOp::modify:
             {
-                int headerSize = sizeof(EntityID) + sizeof(ComponentID);
-                char *compData = reinterpret_cast<char *>(scene.GetByID(ent, comp));
+
+                if (comp == World::GetId<Polygon>())
+                {
+                    int size = reinterpret_cast<int &>(packets[packetPos]);
+                    packetPos += sizeof(int);
+
+                    Polygon *pPolygon = scene.Get<Polygon>(ent);
+
+                    pPolygon->verticies.resize(size);
+
+                    for (int i = 0; i < size; i++)
+                        pPolygon->verticies[i] = reinterpret_cast<Vec2 *>(&packets[packetPos])[i];
+
+                    packetPos += size * sizeof(Vec2);
+                    continue;
+                }
+
+                if (comp == World::GetId<Children>())
+                {
+                    int size = reinterpret_cast<int &>(packets[packetPos]);
+                    packetPos += sizeof(int);
+
+                    Children *pChildren = scene.Get<Children>(ent);
+
+                    pChildren->children.resize(size);
+
+                    for (int i = 0; i < size; i++)
+                        pChildren->children[i] = reinterpret_cast<World::EntityID *>(&packets[packetPos])[i];
+
+                    packetPos += size * sizeof(World::EntityID);
+                    continue;
+                }
+
+                int compSize = scene.GetComponentSize(comp);
+                packetPos += compSize;
+
+                uint8_t *compData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
                 if (compData == nullptr) break;
-                for (int i = 0; i < packets[i].size - headerSize; i++) compData[i] = (packet + headerSize)[i];
+
+                for (int i = 0; i < compSize; i++) compData[i] = packets[packetPos - compSize + i];
                 break;
             }
             case NetworkOp::destroy:
@@ -586,62 +625,88 @@ void NetworkingClientSystem(Scene &scene, std::vector<Packet> &packets)
                 }
                 else
                 {
-                    scene.RemoveById(ent, comp);
+                    scene.Remove(ent, comp);
                 }
                 break;
             }
         }
-
-        delete[] packet;
     }
 
-    packets.clear();
+    packetsSize = 0;
 }
 
-void sendPackets(std::vector<Packet> &packets)
+void sendPackets(std::vector<uint8_t> &packets, int size)
 {
     EM_ASM({
-        let packets = new Uint8Array(Module.HEAPU8.buffer, $0, $1 * 16);
-        for (let i = 0; i < $1; i++)
+        let user = new Uint32Array(Module.HEAPU8.buffer, $0, 8);
+
+        for (let client of Module.socket.clients)
         {
-            Module.broadcast(packets.slice(i * 16, (i + 1) * 16));
+            if (client.entityIndex == user[0] && client.entityVersion == user[1])
+            {
+                client.send(new Uint8Array(Module.HEAPU8.buffer, $0 + 8, $1 - 8));
+            }
         }
     },
-           packets.data(), packets.size());
+           packets.data(), size);
 }
 
-void NetworkingServerSystem(Scene &scene, std::vector<Packet> &packets)
+void NetworkingServerSystem(World::Scene &scene)
 {
-    for (ComponentID comp = 1; comp < s_componentCounter; comp++)
+    packetsSize = sizeof(World::EntityID);
+
+    for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
     {
-        for (EntityID ent : SceneView<>(scene))
+        for (World::EntityID ent : SceneView<>(scene))
         {
-            char *componentData = reinterpret_cast<char *>(scene.GetByID(ent, comp));
+            uint8_t *componentData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
             if (componentData == nullptr) continue;
 
-            // TODO:: HANDLE VECTORS, POLYGON and CHILDREN
-            if (comp == GetId<Polygon>() || comp == GetId<Children>()) continue;
+            reinterpret_cast<World::EntityID &>(packets[packetsSize]) = ent;
+            packetsSize += sizeof(World::EntityID);
 
-            int size = scene.GetComponentSize(comp);
-            // std::cout << size << std::endl;
-            int headerSize = sizeof(EntityID) + sizeof(ComponentID);
+            reinterpret_cast<World::ComponentID &>(packets[packetsSize]) = comp | (NetworkOp::modify << 30);
+            packetsSize += sizeof(World::ComponentID);
 
-            char *buffer = new char[headerSize + size];
-            // char *buffer = nullptr;
-            *reinterpret_cast<EntityID *>(buffer) = ent;
-            *reinterpret_cast<ComponentID *>(buffer + sizeof(EntityID)) = comp | (NetworkOp::modify << 30);
-            for (int i = headerSize; i < size; i++) buffer[i] = componentData[i];
-            packets.push_back({headerSize + size, buffer});
+            if (comp == World::GetId<Polygon>())
+            {
+                Polygon *pPolygon = scene.Get<Polygon>(ent);
+                reinterpret_cast<int &>(packets[packetsSize]) = pPolygon->verticies.size();
+                packetsSize += sizeof(int);
+
+                for (int i = 0; i < pPolygon->verticies.size(); i++)
+                    reinterpret_cast<Vec2 *>(&packets[packetsSize])[i] = pPolygon->verticies[i];
+
+                packetsSize += pPolygon->verticies.size() * sizeof(Vec2);
+                continue;
+            }
+
+            if (comp == World::GetId<Children>())
+            {
+                Children *pChildren = scene.Get<Children>(ent);
+                reinterpret_cast<int &>(packets[packetsSize]) = pChildren->children.size();
+                packetsSize += sizeof(int);
+
+                for (int i = 0; i < pChildren->children.size(); i++)
+                    reinterpret_cast<World::EntityID *>(&packets[packetsSize])[i] = pChildren->children[i];
+
+                packetsSize += pChildren->children.size() * sizeof(World::EntityID);
+                continue;
+            }
+
+            int compSize = scene.GetComponentSize(comp);
+            for (int i = 0; i < compSize; i++) packets[packetsSize + i] = componentData[i];
+            packetsSize += compSize;
         }
     }
 
-    sendPackets(packets);
-
-    for (int i = 0; i < packets.size(); i++)
+    for (World::EntityID ent : SceneView<User>(scene))
     {
-        delete[] packets[i].buffer;
+        reinterpret_cast<World::EntityID &>(packets[0]) = ent;
+        sendPackets(packets, packetsSize);
     }
-    packets.clear();
+
+    packetsSize = sizeof(World::EntityID);
 }
 
 void onMouseDown(int x, int y, int button)
@@ -676,9 +741,62 @@ void onKeyUp(int key)
     key_state.reset(key);
 }
 
-void onPacket(int pPacket, int size)
+uint32_t onPacket(int size)
 {
-    packets.push_back({size, reinterpret_cast<char *>(pPacket)});
+    packetsSize += size;
+    return reinterpret_cast<uint32_t>(&packets[packetsSize - size]);
+}
+
+uint32_t onConnect()
+{
+    World::EntityID *user = new World::EntityID;
+    *user = Game::spawnPlayerRand(scene);
+    std::cout << "Connected, UserId: " << *user << std::endl;
+    return reinterpret_cast<uint32_t>(user);
+}
+
+void stateSync(uint32_t buffer)
+{
+    World::EntityID *user = reinterpret_cast<World::EntityID *>(buffer);
+    std::cout << "Started sync, UserId: " << *user << std::endl;
+
+    int tempPacketsSize = 0;
+
+    reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = *user;
+    tempPacketsSize += sizeof(World::EntityID);
+
+    reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = *user;
+    tempPacketsSize += sizeof(World::EntityID);
+
+    reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = 0 | (NetworkOp::setUser << 30);
+    tempPacketsSize += sizeof(World::ComponentID);
+
+    for (World::EntityID ent : SceneView<>(scene))
+    {
+        reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = ent;
+        tempPacketsSize += sizeof(World::EntityID);
+
+        reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = 0 | (NetworkOp::create << 30);
+        tempPacketsSize += sizeof(World::ComponentID);
+    }
+
+    for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
+    {
+        for (World::EntityID ent : SceneView<>(scene))
+        {
+            uint8_t *componentData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
+            if (componentData == nullptr) continue;
+
+            reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = ent;
+            tempPacketsSize += sizeof(World::EntityID);
+
+            reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = comp | (NetworkOp::create << 30);
+            tempPacketsSize += sizeof(World::ComponentID);
+        }
+    }
+
+    sendPackets(tempPackets, tempPacketsSize);
+    delete user;
 }
 
 void update(double dt)
@@ -704,28 +822,62 @@ void update(double dt)
     elapsedTime += dt;
 
 #ifdef SERVER
-    // RigidbodySystem(scene, dt);
-    // ObjectToWorldSystem(scene);
-    // CollisionSystem(scene);
-    // ObjectToWorldSystem(scene);
-    // DespawnSystem(scene, dt);
-    // GroundDropSystem(scene, elapsedTime);
-    // InteractSystem(scene);
-    // DeathAnimatorSystem(scene, dt);
-    // HealthSystem(scene);
-    // EventSystem(scene);
-    NetworkingServerSystem(scene, packets);
+    RigidbodySystem(scene, dt);
+    ObjectToWorldSystem(scene);
+    CollisionSystem(scene);
+    ObjectToWorldSystem(scene);
+    DespawnSystem(scene, dt);
+    GroundDropSystem(scene, elapsedTime);
+    InteractSystem(scene);
+    DeathAnimatorSystem(scene, dt);
+    HealthSystem(scene);
+    EventSystem(scene);
+    NetworkingServerSystem(scene);
+
+    // for (World::EntityID ent : SceneView<ObjectToWorld, Transform>(scene))
+    // {
+    //     // Children *pChildren = scene.Get<Children>(ent);
+    //     // pChildren->children[0]
+    //     ObjectToWorld *pTransform = scene.Get<ObjectToWorld>(ent);
+
+    //     // Do stuff
+    //     // pHealth->health = std::max(0, pHealth->health - 1);
+    //     // pTransform->rotation = pTransform->rotation + dt * 1;
+    //     for (int i = 0; i < 9; i++)
+    //     {
+    //         std::cout << pTransform->matrix.array[i] << ", ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    // for (World::EntityID ent : SceneView<User, Transform>(scene))
+    // {
+    //     // Children *pChildren = scene.Get<Children>(ent);
+    //     // pChildren->children[0]
+    //     Transform *pTransform = scene.Get<Transform>(ent);
+
+    //     // Do stuff
+    //     // pHealth->health = std::max(0, pHealth->health - 1);
+    //     // pTransform->rotation = pTransform->rotation + dt * 1;
+    //     // for (int i = 0; i < 9; i++)
+    //     // {
+    //     //     std::cout << pTransform->matrix.array[i] << ", ";
+    //     // }
+    //     // std::cout << dt << ", " << std::endl;
+    //     pTransform->pos.x += dt * 1;
+    // }
+
 #endif
 
 #ifndef SERVER
-    // PlayerMovementSystem(scene);
     // CameraFollowSystem(scene);
-    // WorldToViewSystem(scene);
-    // RenderSystem(scene);
-    NetworkingClientSystem(scene, packets);
+    // PlayerMovementSystem(scene);
+    WorldToViewSystem(scene);
+    RenderSystem(scene);
+    NetworkingClientSystem(scene);
 #endif
 
-    // for (EntityID ent : SceneView<Camera, Transform>(scene))
+    // for (World::EntityID ent : SceneView<Camera, Transform>(scene))
     // {
     //     // Children *pChildren = scene.Get<Children>(ent);
     //     // pChildren->children[0]
@@ -788,30 +940,34 @@ int main(int argc, char *argv[])
         };
         Module.socket.onmessage = function(event)
         {
-            // console.log(event.data);
             let array = new Uint8Array(event.data);
-            let pPacket = Module._malloc(array.length);
-            Module.HEAPU8.set(array, pPacket);
-            Module.onPacket(pPacket, array.length);
+            let buffer = Module.onPacket(array.length);
+            new Uint8Array(Module.HEAPU8.buffer).set(array, buffer);
         };
         Module.socket.onopen = function(event)
         {
             console.log('connected');
-            // let array = ([ 10, 20, 30 ]);
-            // Module.socket.send(new Int8Array(array));
         };
     },
            PORT);
 
+    // Camera
+    // {
+    //     World::EntityID camera = scene.NewEntity();
+
+    //     Transform *pTransform = assignTransform(scene, camera);
+    //     pTransform->scale = Vec2(30, 30);
+
+    //     scene.Assign<Camera>(camera);
+    // }
 #endif
 
 #ifdef SERVER
     EM_ASM({
-        var Server = require('ws').Server;
+        const Server = require('ws').Server;
+        const process = require('process');
         let wss = new Server({port : $0});
         wss.binaryType = 'arraybuffer';
-
-        let messages = [];
 
         wss.on(
             'close', function() {
@@ -823,60 +979,50 @@ int main(int argc, char *argv[])
                 console.log('Start on port ' + $0);
             });
 
-        wss.broadcast = function(message)
-        {
-            for (let ws of wss.clients)
-            {
-                ws.send(message);
-            }
-        };
-
-        Module.broadcast = wss.broadcast;
+        Module.socket = wss;
 
         wss.on(
             'connection', function(ws) {
-                for (let i = 0; i < messages.length; i++)
-                {
-                    ws.send(messages[i]);
-                }
-                ws.on(
-                    'message', function(message) {
-                        ws.send(message);
-                        console.log(message);
-                    });
+                let user = Module.onConnect();
+                let entity = new Uint32Array(Module.HEAPU8.buffer, user, 8);
+
+                ws.entityIndex = entity[0];
+                ws.entityVersion = entity[1];
+
+                Module.stateSync(user);
             });
 
-        function clock(start)
+        function getTime()
         {
-            if (!start) return process.hrtime();
-            var end = process.hrtime(start);
-            return Math.round((end[0] * 1000) + (end[1] / 1000000));
+            let time = process.hrtime();
+            return (time[0] * 1000) + (time[1] / 1000000);
         }
 
         let request = 0;
-        let lastTime = clock();
+        let lastTime = getTime();
 
         function update()
         {
-            let timestamp = clock();
+            let timestamp = getTime();
             let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
             lastTime = timestamp;
             Module.update(dt);
-            request = setTimeout(update, (1 / 1) * 3000);
+            // request = setTimeout(update, (1 / 60) * 1000);
+            request = setTimeout(update, (1 / 60) * 1000);
         }
 
         request = setTimeout(update, 0);
     },
            PORT);
+    World::EntityID root = scene.NewEntity();
+    assert(root == World::ROOT_ENTITY);
+
+    Transform *pTransform = scene.Assign<Transform>(World::ROOT_ENTITY);
+    scene.Assign<ObjectToWorld>(World::ROOT_ENTITY);
+    scene.Assign<Children>(World::ROOT_ENTITY);
+    Game::loadScene(scene);
 #endif
-
-    EntityID root = scene.NewEntity();
-    assert(root == ROOT_ENTITY);
-
-    Transform *pTransform = scene.Assign<Transform>(ROOT_ENTITY);
-    scene.Assign<ObjectToWorld>(ROOT_ENTITY);
-    scene.Assign<Children>(ROOT_ENTITY);
-    loadScene(scene);
+    return 0;
 }
 
 EMSCRIPTEN_BINDINGS(my_module)
@@ -891,7 +1037,7 @@ EMSCRIPTEN_BINDINGS(my_module)
     function("onMouseUp", &onMouseUp);
     function("onKeyDown", &onKeyDown);
     function("onKeyUp", &onKeyUp);
-    function("onPacket", &onPacket, allow_raw_pointers());
+    function("onPacket", &onPacket);
+    function("onConnect", &onConnect);
+    function("stateSync", &stateSync);
 }
-
-#endif

@@ -1,10 +1,10 @@
-#ifndef SAT_H
-#define SAT_H
-
-#include "./matrix.cpp"
-#include "./vector.cpp"
 #include <vector>
 #include <iostream>
+
+#include "matrix.hpp"
+#include "vec2.hpp"
+#include "scene.hpp"
+#include "components.hpp"
 
 void project_onto_axis(std::vector<Vec2> &verticies, Vec2 &axis, double &min, double &max)
 {
@@ -37,7 +37,7 @@ Vec2 circle_axis(Vec2 pos, std::vector<Vec2> &verticies)
     return closest / sqrt(closest_dist);
 }
 
-bool sat(Scene &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
+bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &mtv)
 {
     ObjectToWorld *pObjectToWorld1 = scene.Get<ObjectToWorld>(ent1);
     ObjectToWorld *pObjectToWorld2 = scene.Get<ObjectToWorld>(ent2);
@@ -132,5 +132,3 @@ bool sat(Scene &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
 
     return true;
 }
-
-#endif

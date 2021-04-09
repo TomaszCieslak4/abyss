@@ -1698,14 +1698,7 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  4240: function($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) {Module.context.save(); Module.context.setTransform($0, $1, $2, $3, $4, $5); Module.context.fillStyle = `rgba(${$6}, ${$7}, ${$8}, ${$9})`; Module.context.beginPath();},  
- 4411: function($0, $1, $2, $3, $4) {Module.context.lineWidth = $0; Module.context.strokeStyle = `rgba(${$1}, ${$2}, ${$3}, ${$4})`; Module.context.scale(1 - $0 / 2, 1 - $0 / 2);},  
- 4557: function($0, $1) {Module.context.arc(0, 0, 0.5, $0, $1);},  
- 4600: function($0, $1) {let verticies = new Float64Array(Module.HEAPF64.buffer, $0, $1 * 2); Module.context.moveTo(verticies[0], verticies[1]); for (let i = 1; i < $1; i++) { Module.context.lineTo(verticies[i * 2], verticies[i * 2 + 1]); }},  
- 4820: function() {Module.context.stroke(); Module.context.restore();},  
- 4875: function() {Module.context.fill(); Module.context.restore();},  
- 4928: function($0, $1) {let packets = new Uint8Array(Module.HEAPU8.buffer, $0, $1 * 16); for (let i = 0; i < $1; i++) { Module.broadcast(packets.slice(i * 16, (i + 1) * 16)); }},  
- 5085: function($0) {var Server = require('ws').Server; let wss = new Server({port : $0}); wss.binaryType = 'arraybuffer'; let messages = []; wss.on( 'close', function() { console.log('disconnected'); }); wss.on( 'listening', function() { console.log('Start on port ' + $0); }); wss.broadcast = function(message) { for (let ws of wss.clients) { ws.send(message); } }; Module.broadcast = wss.broadcast; wss.on( 'connection', function(ws) { for (let i = 0; i < messages.length; i++) { ws.send(messages[i]); } ws.on( 'message', function(message) { ws.send(message); console.log(message); }); }); function clock(start) { if (!start) return process.hrtime(); var end = process.hrtime(start); return Math.round((end[0] * 1000) + (end[1] / 1000000)); } let request = 0; let lastTime = clock(); function update() { let timestamp = clock(); let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60); lastTime = timestamp; Module.update(dt); request = setTimeout(update, (1 / 1) * 3000); } request = setTimeout(update, 0);}
+  
 };
 
 
@@ -1774,10 +1767,6 @@ var ASM_CONSTS = {
       var js = jsStackTrace();
       if (Module['extraStackTrace']) js += '\n' + Module['extraStackTrace']();
       return demangleAll(js);
-    }
-
-  function ___assert_fail(condition, filename, line, func) {
-      abort('Assertion failed: ' + UTF8ToString(condition) + ', at: ' + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
     }
 
   var ExceptionInfoAttrs={DESTRUCTOR_OFFSET:0,REFCOUNT_OFFSET:4,TYPE_OFFSET:8,CAUGHT_OFFSET:12,RETHROWN_OFFSET:13,SIZE:16};
@@ -2184,295 +2173,6 @@ var ASM_CONSTS = {
       });
     }
 
-  function new_(constructor, argumentList) {
-      if (!(constructor instanceof Function)) {
-          throw new TypeError('new_ called with constructor type ' + typeof(constructor) + " which is not a function");
-      }
-  
-      /*
-       * Previously, the following line was just:
-  
-       function dummy() {};
-  
-       * Unfortunately, Chrome was preserving 'dummy' as the object's name, even though at creation, the 'dummy' has the
-       * correct constructor name.  Thus, objects created with IMVU.new would show up in the debugger as 'dummy', which
-       * isn't very helpful.  Using IMVU.createNamedFunction addresses the issue.  Doublely-unfortunately, there's no way
-       * to write a test for this behavior.  -NRD 2013.02.22
-       */
-      var dummy = createNamedFunction(constructor.name || 'unknownFunctionName', function(){});
-      dummy.prototype = constructor.prototype;
-      var obj = new dummy;
-  
-      var r = constructor.apply(obj, argumentList);
-      return (r instanceof Object) ? r : obj;
-    }
-  
-  function runDestructors(destructors) {
-      while (destructors.length) {
-          var ptr = destructors.pop();
-          var del = destructors.pop();
-          del(ptr);
-      }
-    }
-  function craftInvokerFunction(humanName, argTypes, classType, cppInvokerFunc, cppTargetFunc) {
-      // humanName: a human-readable string name for the function to be generated.
-      // argTypes: An array that contains the embind type objects for all types in the function signature.
-      //    argTypes[0] is the type object for the function return value.
-      //    argTypes[1] is the type object for function this object/class type, or null if not crafting an invoker for a class method.
-      //    argTypes[2...] are the actual function parameters.
-      // classType: The embind type object for the class to be bound, or null if this is not a method of a class.
-      // cppInvokerFunc: JS Function object to the C++-side function that interops into C++ code.
-      // cppTargetFunc: Function pointer (an integer to FUNCTION_TABLE) to the target C++ function the cppInvokerFunc will end up calling.
-      var argCount = argTypes.length;
-  
-      if (argCount < 2) {
-          throwBindingError("argTypes array size mismatch! Must at least get return value and 'this' types!");
-      }
-  
-      var isClassMethodFunc = (argTypes[1] !== null && classType !== null);
-  
-      // Free functions with signature "void function()" do not need an invoker that marshalls between wire types.
-  // TODO: This omits argument count check - enable only at -O3 or similar.
-  //    if (ENABLE_UNSAFE_OPTS && argCount == 2 && argTypes[0].name == "void" && !isClassMethodFunc) {
-  //       return FUNCTION_TABLE[fn];
-  //    }
-  
-      // Determine if we need to use a dynamic stack to store the destructors for the function parameters.
-      // TODO: Remove this completely once all function invokers are being dynamically generated.
-      var needsDestructorStack = false;
-  
-      for (var i = 1; i < argTypes.length; ++i) { // Skip return value at index 0 - it's not deleted here.
-          if (argTypes[i] !== null && argTypes[i].destructorFunction === undefined) { // The type does not define a destructor function - must use dynamic stack
-              needsDestructorStack = true;
-              break;
-          }
-      }
-  
-      var returns = (argTypes[0].name !== "void");
-  
-      var argsList = "";
-      var argsListWired = "";
-      for (var i = 0; i < argCount - 2; ++i) {
-          argsList += (i!==0?", ":"")+"arg"+i;
-          argsListWired += (i!==0?", ":"")+"arg"+i+"Wired";
-      }
-  
-      var invokerFnBody =
-          "return function "+makeLegalFunctionName(humanName)+"("+argsList+") {\n" +
-          "if (arguments.length !== "+(argCount - 2)+") {\n" +
-              "throwBindingError('function "+humanName+" called with ' + arguments.length + ' arguments, expected "+(argCount - 2)+" args!');\n" +
-          "}\n";
-  
-      if (needsDestructorStack) {
-          invokerFnBody +=
-              "var destructors = [];\n";
-      }
-  
-      var dtorStack = needsDestructorStack ? "destructors" : "null";
-      var args1 = ["throwBindingError", "invoker", "fn", "runDestructors", "retType", "classParam"];
-      var args2 = [throwBindingError, cppInvokerFunc, cppTargetFunc, runDestructors, argTypes[0], argTypes[1]];
-  
-      if (isClassMethodFunc) {
-          invokerFnBody += "var thisWired = classParam.toWireType("+dtorStack+", this);\n";
-      }
-  
-      for (var i = 0; i < argCount - 2; ++i) {
-          invokerFnBody += "var arg"+i+"Wired = argType"+i+".toWireType("+dtorStack+", arg"+i+"); // "+argTypes[i+2].name+"\n";
-          args1.push("argType"+i);
-          args2.push(argTypes[i+2]);
-      }
-  
-      if (isClassMethodFunc) {
-          argsListWired = "thisWired" + (argsListWired.length > 0 ? ", " : "") + argsListWired;
-      }
-  
-      invokerFnBody +=
-          (returns?"var rv = ":"") + "invoker(fn"+(argsListWired.length>0?", ":"")+argsListWired+");\n";
-  
-      if (needsDestructorStack) {
-          invokerFnBody += "runDestructors(destructors);\n";
-      } else {
-          for (var i = isClassMethodFunc?1:2; i < argTypes.length; ++i) { // Skip return value at index 0 - it's not deleted here. Also skip class type if not a method.
-              var paramName = (i === 1 ? "thisWired" : ("arg"+(i - 2)+"Wired"));
-              if (argTypes[i].destructorFunction !== null) {
-                  invokerFnBody += paramName+"_dtor("+paramName+"); // "+argTypes[i].name+"\n";
-                  args1.push(paramName+"_dtor");
-                  args2.push(argTypes[i].destructorFunction);
-              }
-          }
-      }
-  
-      if (returns) {
-          invokerFnBody += "var ret = retType.fromWireType(rv);\n" +
-                           "return ret;\n";
-      } else {
-      }
-      invokerFnBody += "}\n";
-  
-      args1.push(invokerFnBody);
-  
-      var invokerFunction = new_(Function, args1).apply(null, args2);
-      return invokerFunction;
-    }
-  
-  function ensureOverloadTable(proto, methodName, humanName) {
-      if (undefined === proto[methodName].overloadTable) {
-          var prevFunc = proto[methodName];
-          // Inject an overload resolver function that routes to the appropriate overload based on the number of arguments.
-          proto[methodName] = function() {
-              // TODO This check can be removed in -O3 level "unsafe" optimizations.
-              if (!proto[methodName].overloadTable.hasOwnProperty(arguments.length)) {
-                  throwBindingError("Function '" + humanName + "' called with an invalid number of arguments (" + arguments.length + ") - expects one of (" + proto[methodName].overloadTable + ")!");
-              }
-              return proto[methodName].overloadTable[arguments.length].apply(this, arguments);
-          };
-          // Move the previous function into the overload table.
-          proto[methodName].overloadTable = [];
-          proto[methodName].overloadTable[prevFunc.argCount] = prevFunc;
-      }
-    }
-  /** @param {number=} numArguments */
-  function exposePublicSymbol(name, value, numArguments) {
-      if (Module.hasOwnProperty(name)) {
-          if (undefined === numArguments || (undefined !== Module[name].overloadTable && undefined !== Module[name].overloadTable[numArguments])) {
-              throwBindingError("Cannot register public name '" + name + "' twice");
-          }
-  
-          // We are exposing a function with the same name as an existing function. Create an overload table and a function selector
-          // that routes between the two.
-          ensureOverloadTable(Module, name, name);
-          if (Module.hasOwnProperty(numArguments)) {
-              throwBindingError("Cannot register multiple overloads of a function with the same number of arguments (" + numArguments + ")!");
-          }
-          // Add the new function into the overload table.
-          Module[name].overloadTable[numArguments] = value;
-      }
-      else {
-          Module[name] = value;
-          if (undefined !== numArguments) {
-              Module[name].numArguments = numArguments;
-          }
-      }
-    }
-  
-  function heap32VectorToArray(count, firstElement) {
-      var array = [];
-      for (var i = 0; i < count; i++) {
-          array.push(HEAP32[(firstElement >> 2) + i]);
-      }
-      return array;
-    }
-  
-  /** @param {number=} numArguments */
-  function replacePublicSymbol(name, value, numArguments) {
-      if (!Module.hasOwnProperty(name)) {
-          throwInternalError('Replacing nonexistant public symbol');
-      }
-      // If there's an overload table for this symbol, replace the symbol in the overload table instead.
-      if (undefined !== Module[name].overloadTable && undefined !== numArguments) {
-          Module[name].overloadTable[numArguments] = value;
-      }
-      else {
-          Module[name] = value;
-          Module[name].argCount = numArguments;
-      }
-    }
-  
-  function dynCallLegacy(sig, ptr, args) {
-      assert(('dynCall_' + sig) in Module, 'bad function pointer type - no table for sig \'' + sig + '\'');
-      if (args && args.length) {
-        // j (64-bit integer) must be passed in as two numbers [low 32, high 32].
-        assert(args.length === sig.substring(1).replace(/j/g, '--').length);
-      } else {
-        assert(sig.length == 1);
-      }
-      var f = Module["dynCall_" + sig];
-      return args && args.length ? f.apply(null, [ptr].concat(args)) : f.call(null, ptr);
-    }
-  function dynCall(sig, ptr, args) {
-      // Without WASM_BIGINT support we cannot directly call function with i64 as
-      // part of thier signature, so we rely the dynCall functions generated by
-      // wasm-emscripten-finalize
-      if (sig.indexOf('j') != -1) {
-        return dynCallLegacy(sig, ptr, args);
-      }
-      assert(wasmTable.get(ptr), 'missing table entry in dynCall: ' + ptr);
-      return wasmTable.get(ptr).apply(null, args)
-    }
-  function getDynCaller(sig, ptr) {
-      assert(sig.indexOf('j') >= 0, 'getDynCaller should only be called with i64 sigs')
-      var argCache = [];
-      return function() {
-        argCache.length = arguments.length;
-        for (var i = 0; i < arguments.length; i++) {
-          argCache[i] = arguments[i];
-        }
-        return dynCall(sig, ptr, argCache);
-      };
-    }
-  function embind__requireFunction(signature, rawFunction) {
-      signature = readLatin1String(signature);
-  
-      function makeDynCaller() {
-        if (signature.indexOf('j') != -1) {
-          return getDynCaller(signature, rawFunction);
-        }
-        return wasmTable.get(rawFunction);
-      }
-  
-      var fp = makeDynCaller();
-      if (typeof fp !== "function") {
-          throwBindingError("unknown function pointer with signature " + signature + ": " + rawFunction);
-      }
-      return fp;
-    }
-  
-  var UnboundTypeError=undefined;
-  
-  function getTypeName(type) {
-      var ptr = ___getTypeName(type);
-      var rv = readLatin1String(ptr);
-      _free(ptr);
-      return rv;
-    }
-  function throwUnboundTypeError(message, types) {
-      var unboundTypes = [];
-      var seen = {};
-      function visit(type) {
-          if (seen[type]) {
-              return;
-          }
-          if (registeredTypes[type]) {
-              return;
-          }
-          if (typeDependencies[type]) {
-              typeDependencies[type].forEach(visit);
-              return;
-          }
-          unboundTypes.push(type);
-          seen[type] = true;
-      }
-      types.forEach(visit);
-  
-      throw new UnboundTypeError(message + ': ' + unboundTypes.map(getTypeName).join([', ']));
-    }
-  function __embind_register_function(name, argCount, rawArgTypesAddr, signature, rawInvoker, fn) {
-      var argTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
-      name = readLatin1String(name);
-  
-      rawInvoker = embind__requireFunction(signature, rawInvoker);
-  
-      exposePublicSymbol(name, function() {
-          throwUnboundTypeError('Cannot call ' + name + ' due to unbound types', argTypes);
-      }, argCount - 1);
-  
-      whenDependentTypesAreResolved([], argTypes, function(argTypes) {
-          var invokerArgsArray = [argTypes[0] /* return value */, null /* no class 'this'*/].concat(argTypes.slice(1) /* actual params */);
-          replacePublicSymbol(name, craftInvokerFunction(name, invokerArgsArray, null /* no class 'this'*/, rawInvoker, fn), argCount - 1);
-          return [];
-      });
-    }
-
   function integerReadValueFromPointer(name, shift, signed) {
       // integers are quite common, so generate very specialized functions
       switch (shift) {
@@ -2743,12 +2443,6 @@ var ASM_CONSTS = {
       abort();
     }
 
-  function _emscripten_asm_const_int(code, sigPtr, argbuf) {
-      var args = readAsmConstArgs(sigPtr, argbuf);
-      if (!ASM_CONSTS.hasOwnProperty(code)) abort('No EM_ASM constant found at address ' + code);
-      return ASM_CONSTS[code].apply(null, args);
-    }
-
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.copyWithin(dest, src, src + num);
     }
@@ -2809,83 +2503,10 @@ var ASM_CONSTS = {
       err('Failed to grow the heap from ' + oldSize + ' bytes to ' + newSize + ' bytes, not enough memory!');
       return false;
     }
-
-  function flush_NO_FILESYSTEM() {
-      // flush anything remaining in the buffers during shutdown
-      if (typeof _fflush !== 'undefined') _fflush(0);
-      var buffers = SYSCALLS.buffers;
-      if (buffers[1].length) SYSCALLS.printChar(1, 10);
-      if (buffers[2].length) SYSCALLS.printChar(2, 10);
-    }
-  
-  var SYSCALLS={mappings:{},buffers:[null,[],[]],printChar:function(stream, curr) {
-        var buffer = SYSCALLS.buffers[stream];
-        assert(buffer);
-        if (curr === 0 || curr === 10) {
-          (stream === 1 ? out : err)(UTF8ArrayToString(buffer, 0));
-          buffer.length = 0;
-        } else {
-          buffer.push(curr);
-        }
-      },varargs:undefined,get:function() {
-        assert(SYSCALLS.varargs != undefined);
-        SYSCALLS.varargs += 4;
-        var ret = HEAP32[(((SYSCALLS.varargs)-(4))>>2)];
-        return ret;
-      },getStr:function(ptr) {
-        var ret = UTF8ToString(ptr);
-        return ret;
-      },get64:function(low, high) {
-        if (low >= 0) assert(high === 0);
-        else assert(high === -1);
-        return low;
-      }};
-  function _fd_write(fd, iov, iovcnt, pnum) {
-      // hack to support printf in SYSCALLS_REQUIRE_FILESYSTEM=0
-      var num = 0;
-      for (var i = 0; i < iovcnt; i++) {
-        var ptr = HEAP32[(((iov)+(i*8))>>2)];
-        var len = HEAP32[(((iov)+(i*8 + 4))>>2)];
-        for (var j = 0; j < len; j++) {
-          SYSCALLS.printChar(fd, HEAPU8[ptr+j]);
-        }
-        num += len;
-      }
-      HEAP32[((pnum)>>2)] = num
-      return 0;
-    }
-
-  function _setTempRet0($i) {
-      setTempRet0(($i) | 0);
-    }
-
-  var readAsmConstArgsArray=[];
-  function readAsmConstArgs(sigPtr, buf) {
-      // Nobody should have mutated _readAsmConstArgsArray underneath us to be something else than an array.
-      assert(Array.isArray(readAsmConstArgsArray));
-      // The input buffer is allocated on the stack, so it must be stack-aligned.
-      assert(buf % 16 == 0);
-      readAsmConstArgsArray.length = 0;
-      var ch;
-      // Most arguments are i32s, so shift the buffer pointer so it is a plain
-      // index into HEAP32.
-      buf >>= 2;
-      while (ch = HEAPU8[sigPtr++]) {
-        assert(ch === 100/*'d'*/ || ch === 102/*'f'*/ || ch === 105 /*'i'*/);
-        // A double takes two 32-bit slots, and must also be aligned - the backend
-        // will emit padding to avoid that.
-        var double = ch < 105;
-        if (double && (buf & 1)) buf++;
-        readAsmConstArgsArray.push(double ? HEAPF64[buf++ >> 1] : HEAP32[buf]);
-        ++buf;
-      }
-      return readAsmConstArgsArray;
-    }
 embind_init_charCodes();
 BindingError = Module['BindingError'] = extendError(Error, 'BindingError');;
 InternalError = Module['InternalError'] = extendError(Error, 'InternalError');;
 init_emval();;
-UnboundTypeError = Module['UnboundTypeError'] = extendError(Error, 'UnboundTypeError');;
 var ASSERTIONS = true;
 
 
@@ -2916,32 +2537,24 @@ function intArrayToString(array) {
 
 
 var asmLibraryArg = {
-  "__assert_fail": ___assert_fail,
   "__cxa_allocate_exception": ___cxa_allocate_exception,
   "__cxa_atexit": ___cxa_atexit,
   "__cxa_throw": ___cxa_throw,
   "_embind_register_bool": __embind_register_bool,
   "_embind_register_emval": __embind_register_emval,
   "_embind_register_float": __embind_register_float,
-  "_embind_register_function": __embind_register_function,
   "_embind_register_integer": __embind_register_integer,
   "_embind_register_memory_view": __embind_register_memory_view,
   "_embind_register_std_string": __embind_register_std_string,
   "_embind_register_std_wstring": __embind_register_std_wstring,
   "_embind_register_void": __embind_register_void,
   "abort": _abort,
-  "emscripten_asm_const_int": _emscripten_asm_const_int,
   "emscripten_memcpy_big": _emscripten_memcpy_big,
-  "emscripten_resize_heap": _emscripten_resize_heap,
-  "fd_write": _fd_write,
-  "setTempRet0": _setTempRet0
+  "emscripten_resize_heap": _emscripten_resize_heap
 };
 var asm = createWasm();
 /** @type {function(...*):?} */
 var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__wasm_call_ctors");
-
-/** @type {function(...*):?} */
-var _main = Module["_main"] = createExportWrapper("main");
 
 /** @type {function(...*):?} */
 var ___getTypeName = Module["___getTypeName"] = createExportWrapper("__getTypeName");
@@ -2984,9 +2597,6 @@ var _emscripten_stack_get_end = Module["_emscripten_stack_get_end"] = function()
 
 /** @type {function(...*):?} */
 var _free = Module["_free"] = createExportWrapper("free");
-
-/** @type {function(...*):?} */
-var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
 
 
@@ -3327,53 +2937,6 @@ dependenciesFulfilled = function runCaller() {
   if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
 };
 
-function callMain(args) {
-  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
-  assert(__ATPRERUN__.length == 0, 'cannot call main when preRun functions remain to be called');
-
-  var entryFunction = Module['_main'];
-
-  args = args || [];
-
-  var argc = args.length+1;
-  var argv = stackAlloc((argc + 1) * 4);
-  HEAP32[argv >> 2] = allocateUTF8OnStack(thisProgram);
-  for (var i = 1; i < argc; i++) {
-    HEAP32[(argv >> 2) + i] = allocateUTF8OnStack(args[i - 1]);
-  }
-  HEAP32[(argv >> 2) + argc] = 0;
-
-  try {
-
-    var ret = entryFunction(argc, argv);
-
-    // In PROXY_TO_PTHREAD builds, we should never exit the runtime below, as
-    // execution is asynchronously handed off to a pthread.
-      // if we're not running an evented main loop, it's time to exit
-      exit(ret, /* implicit = */ true);
-  }
-  catch(e) {
-    if (e instanceof ExitStatus) {
-      // exit() throws this once it's done to make sure execution
-      // has been stopped completely
-      return;
-    } else if (e == 'unwind') {
-      // running an evented main loop, don't immediately exit
-      return;
-    } else {
-      var toLog = e;
-      if (e && typeof e === 'object' && e.stack) {
-        toLog = [e, e.stack];
-      }
-      err('exception thrown: ' + toLog);
-      quit_(1, e);
-    }
-  } finally {
-    calledMain = true;
-
-  }
-}
-
 function stackCheckInit() {
   // This is normally called automatically during __wasm_call_ctors but need to
   // get these values before even running any of the ctors so we call it redundantly
@@ -3415,7 +2978,7 @@ function run(args) {
 
     if (Module['onRuntimeInitialized']) Module['onRuntimeInitialized']();
 
-    if (shouldRunNow) callMain(args);
+    assert(!Module['_main'], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
 
     postRun();
   }
@@ -3455,7 +3018,7 @@ function checkUnflushedContent() {
     has = true;
   }
   try { // it doesn't matter if it fails
-    var flush = flush_NO_FILESYSTEM;
+    var flush = null;
     if (flush) flush();
   } catch(e) {}
   out = oldOut;
@@ -3504,11 +3067,6 @@ if (Module['preInit']) {
     Module['preInit'].pop()();
   }
 }
-
-// shouldRunNow refers to calling main(), not run().
-var shouldRunNow = true;
-
-if (Module['noInitialRun']) shouldRunNow = false;
 
 run();
 
