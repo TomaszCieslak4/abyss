@@ -2,7 +2,7 @@
 #define MATRIX_H
 
 #include <array>
-#include "vec2.hpp"
+#include "vec2.cpp"
 
 class Mat3
 {

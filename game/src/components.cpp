@@ -3,9 +3,9 @@
 
 #include <vector>
 
-#include "vec2.hpp"
-#include "matrix.hpp"
-#include "scene.hpp"
+#include "vec2.cpp"
+#include "matrix.cpp"
+#include "scene.cpp"
 
 struct Transform
 {

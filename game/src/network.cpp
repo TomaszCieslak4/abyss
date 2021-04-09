@@ -1,6 +1,8 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include <vector>
+
 enum NetworkOp
 {
     create,

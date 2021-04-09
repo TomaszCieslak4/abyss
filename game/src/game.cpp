@@ -1,20 +1,37 @@
-#include <iostream>
+#ifndef GAME_H
+#define GAME_H
 
-#include "game.hpp"
-#include "prefabs.hpp"
-#include "scene_view.hpp"
-#include "utils.hpp"
-#include "components.hpp"
-#include "scene.hpp"
+#include "game.cpp"
+#include "prefabs.cpp"
+#include "scene_view.cpp"
+#include "utils.cpp"
+#include "components.cpp"
+#include "scene.cpp"
 
-void Game::spawnEntityRand(World::Scene &scene, World::EntityID root, Game::Spawn type, int numToSpawn)
+namespace Game
+{
+// Radius
+constexpr int PLAY_RADIUS = 50;
+constexpr int BOUNDRY_DEPTH = 20;
+constexpr int COMBINED_SIZE = BOUNDRY_DEPTH + PLAY_RADIUS;
+constexpr int MIN_SPAWN_SEPERATION = 10;
+
+enum Spawn
+{
+    ammo,
+    health,
+    crate,
+    wall,
+};
+
+void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int numToSpawn)
 {
     int countInd = 0;
 
     for (int i = 0; i < 10000 && countInd < numToSpawn; i++)
     {
-        Vec2 pos = Vec2(Utils::lerp(Game::MIN_SPAWN_SEPERATION - Game::PLAY_RADIUS, Game::PLAY_RADIUS - Game::MIN_SPAWN_SEPERATION, Utils::drandom()),
-                        Utils::lerp(Game::MIN_SPAWN_SEPERATION - Game::PLAY_RADIUS, Game::PLAY_RADIUS - Game::MIN_SPAWN_SEPERATION, Utils::drandom()));
+        Vec2 pos = Vec2(Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()),
+                        Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
         for (World::EntityID ent : SceneView<Transform>(scene))
@@ -31,16 +48,16 @@ void Game::spawnEntityRand(World::Scene &scene, World::EntityID root, Game::Spaw
 
         switch (type)
         {
-            case Game::Spawn::ammo:
+            case Spawn::ammo:
                 Prefabs::spawnAmmoPackPrefab(scene, root, pos);
                 break;
-            case Game::Spawn::health:
+            case Spawn::health:
                 Prefabs::spawnHealthPackPrefab(scene, root, pos);
                 break;
-            case Game::Spawn::crate:
+            case Spawn::crate:
                 Prefabs::spawnCratePrefab(scene, root, pos);
                 break;
-            case Game::Spawn::wall:
+            case Spawn::wall:
                 Prefabs::spawnWallPrefab(scene, root, pos);
                 break;
 
@@ -52,12 +69,12 @@ void Game::spawnEntityRand(World::Scene &scene, World::EntityID root, Game::Spaw
     }
 }
 
-World::EntityID Game::spawnPlayerRand(World::Scene &scene)
+World::EntityID spawnPlayerRand(World::Scene &scene)
 {
     for (int i = 0; i < 10000; i++)
     {
-        Vec2 pos = Vec2(Utils::lerp(Game::MIN_SPAWN_SEPERATION - Game::PLAY_RADIUS, Game::PLAY_RADIUS - Game::MIN_SPAWN_SEPERATION, Utils::drandom()),
-                        Utils::lerp(Game::MIN_SPAWN_SEPERATION - Game::PLAY_RADIUS, Game::PLAY_RADIUS - Game::MIN_SPAWN_SEPERATION, Utils::drandom()));
+        Vec2 pos = Vec2(Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()),
+                        Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
         for (World::EntityID ent : SceneView<Transform>(scene))
@@ -79,7 +96,7 @@ World::EntityID Game::spawnPlayerRand(World::Scene &scene)
     return INVALID_ENTITY;
 }
 
-void Game::loadScene(World::Scene &scene)
+void loadScene(World::Scene &scene)
 {
     // Create Boundries
     Color boundryColor = {16, 14, 23};
@@ -93,3 +110,7 @@ void Game::loadScene(World::Scene &scene)
     for (int i = 0; i < counts.size(); i++)
         spawnEntityRand(scene, World::ROOT_ENTITY, (Spawn)i, counts[i]);
 } // namespace Game
+
+} // namespace Game
+
+#endif

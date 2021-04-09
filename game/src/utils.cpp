@@ -1,7 +1,16 @@
-#include "utils.hpp"
-#include "scene.hpp"
+#ifndef UTILS_CPP
+#define UTILS_CPP
 
-void Utils::setParent(World::Scene &scene, World::EntityID ent, World::EntityID par)
+#include <cstdlib>
+#include <cmath>
+
+#include "scene.cpp"
+#include "components.cpp"
+#include "utils.cpp"
+
+namespace Utils
+{
+void setParent(World::Scene &scene, World::EntityID ent, World::EntityID par)
 {
     Parent *pParent = scene.Get<Parent>(ent);
     if (pParent != nullptr)
@@ -25,7 +34,7 @@ void Utils::setParent(World::Scene &scene, World::EntityID ent, World::EntityID 
     pChildren->children.push_back(ent);
 }
 
-void Utils::destroyEntity(World::Scene &scene, World::EntityID ent)
+void destroyEntity(World::Scene &scene, World::EntityID ent)
 {
     Parent *pParent = scene.Get<Parent>(ent);
     if (pParent != nullptr)
@@ -47,7 +56,7 @@ void Utils::destroyEntity(World::Scene &scene, World::EntityID ent)
     scene.DestroyEntity(ent);
 }
 
-Polygon *Utils::assignShape(World::Scene &scene, World::EntityID ent, Shape shape, bool addRenderer)
+Polygon *assignShape(World::Scene &scene, World::EntityID ent, Shape shape, bool addRenderer = true)
 {
     Polygon *pMesh = scene.Assign<Polygon>(ent);
     if (addRenderer) scene.Assign<Renderer>(ent);
@@ -69,10 +78,16 @@ Polygon *Utils::assignShape(World::Scene &scene, World::EntityID ent, Shape shap
     return pMesh;
 }
 
-Transform *Utils::assignTransform(World::Scene &scene, World::EntityID ent, World::EntityID parent)
+Transform *assignTransform(World::Scene &scene, World::EntityID ent, World::EntityID parent = World::ROOT_ENTITY)
 {
     Transform *pTransform = scene.Assign<Transform>(ent);
     scene.Assign<ObjectToWorld>(ent);
     setParent(scene, ent, parent);
     return pTransform;
 }
+
+inline double lerp(double min, double max, double t) { return min + (max - min) * t; }
+inline double drandom() { return (double)std::rand() / (double)RAND_MAX; }
+} // namespace Utils
+
+#endif

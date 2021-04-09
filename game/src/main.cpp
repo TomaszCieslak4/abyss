@@ -6,16 +6,16 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
-#include "prefabs.hpp"
-#include "vec2.hpp"
-#include "matrix.hpp"
-#include "components.hpp"
-#include "sat.hpp"
-#include "scene.hpp"
-#include "game.hpp"
-#include "network.hpp"
-#include "utils.hpp"
-#include "scene_view.hpp"
+#include "prefabs.cpp"
+#include "vec2.cpp"
+#include "matrix.cpp"
+#include "components.cpp"
+#include "sat.cpp"
+#include "scene.cpp"
+#include "game.cpp"
+#include "network.cpp"
+#include "utils.cpp"
+#include "scene_view.cpp"
 
 // #define SERVER
 
@@ -950,16 +950,6 @@ int main(int argc, char *argv[])
         };
     },
            PORT);
-
-    // Camera
-    // {
-    //     World::EntityID camera = scene.NewEntity();
-
-    //     Transform *pTransform = assignTransform(scene, camera);
-    //     pTransform->scale = Vec2(30, 30);
-
-    //     scene.Assign<Camera>(camera);
-    // }
 #endif
 
 #ifdef SERVER
@@ -1021,6 +1011,16 @@ int main(int argc, char *argv[])
     scene.Assign<ObjectToWorld>(World::ROOT_ENTITY);
     scene.Assign<Children>(World::ROOT_ENTITY);
     Game::loadScene(scene);
+
+    // Camera
+    {
+        World::EntityID camera = scene.NewEntity();
+
+        Transform *pTransform = Utils::assignTransform(scene, camera);
+        pTransform->scale = Vec2(30, 30);
+
+        scene.Assign<Camera>(camera);
+    }
 #endif
     return 0;
 }

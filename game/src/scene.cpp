@@ -3,7 +3,7 @@
 
 #include <bitset>
 #include <vector>
-#include "network.hpp"
+#include "network.cpp"
 
 namespace World
 {

@@ -1,7 +1,7 @@
 #ifndef SCENE_VIEW_H
 #define SCENE_VIEW_H
 
-#include "scene.hpp"
+#include "scene.cpp"
 
 template <typename... ComponentTypes>
 struct SceneView

@@ -1,10 +1,15 @@
-#include "scene.hpp"
-#include "components.hpp"
-#include "prefabs.hpp"
-#include "vec2.hpp"
-#include "utils.hpp"
+#ifndef PREFABS_H
+#define PREFABS_H
 
-World::EntityID Prefabs::spawnRectangle(World::Scene &scene, Vec2 pos, Vec2 scale, double rotation, World::EntityID parent, Color color, bool addCollider)
+#include "scene.cpp"
+#include "components.cpp"
+#include "prefabs.cpp"
+#include "vec2.cpp"
+#include "utils.cpp"
+
+namespace Prefabs
+{
+World::EntityID spawnRectangle(World::Scene &scene, Vec2 pos, Vec2 scale, double rotation, World::EntityID parent, Color color, bool addCollider = false)
 {
     World::EntityID rectangle = scene.NewEntity();
 
@@ -23,44 +28,44 @@ World::EntityID Prefabs::spawnRectangle(World::Scene &scene, Vec2 pos, Vec2 scal
     return rectangle;
 }
 
-World::EntityID Prefabs::attachSniperPrefab(World::Scene &scene, World::EntityID parent)
+World::EntityID attachSniperPrefab(World::Scene &scene, World::EntityID parent)
 {
     World::EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
     scene.Assign<Weapon>(gun);
 
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
-    Prefabs::spawnRectangle(scene, Vec2(0.85, 0), Vec2(0.15, 0.1), 0, gun, {249, 156, 35});
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.7, 0.15), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0.85, 0), Vec2(0.15, 0.1), 0, gun, {249, 156, 35});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.7, 0.15), 0, gun, {255, 255, 255});
 
     return gun;
 }
 
-World::EntityID Prefabs::attachArPrefab(World::Scene &scene, World::EntityID parent)
+World::EntityID attachArPrefab(World::Scene &scene, World::EntityID parent)
 {
     World::EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
     scene.Assign<Weapon>(gun);
 
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
-    Prefabs::spawnRectangle(scene, Vec2(0.45, 0), Vec2(0.15, 0.2), 0, gun, {249, 156, 35});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0.45, 0), Vec2(0.15, 0.2), 0, gun, {249, 156, 35});
 
     return gun;
 }
 
-World::EntityID Prefabs::attachSmgPrefab(World::Scene &scene, World::EntityID parent)
+World::EntityID attachSmgPrefab(World::Scene &scene, World::EntityID parent)
 {
     World::EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
     scene.Assign<Weapon>(gun);
 
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.4), 0, gun, {255, 255, 255});
-    Prefabs::spawnRectangle(scene, Vec2(0.47, 0), Vec2(0.4, 0.2), 0, gun, {249, 156, 35});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.4), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0.47, 0), Vec2(0.4, 0.2), 0, gun, {249, 156, 35});
 
     return gun;
 }
 
-World::EntityID Prefabs::groundDropPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
+World::EntityID groundDropPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
 {
     World::EntityID groundDrop = scene.NewEntity();
 
@@ -109,24 +114,24 @@ World::EntityID Prefabs::groundDropPrefab(World::Scene &scene, World::EntityID p
     return groundDrop;
 }
 
-World::EntityID Prefabs::spawnHealthPackPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
+World::EntityID spawnHealthPackPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
 {
-    World::EntityID groundDrop = Prefabs::groundDropPrefab(scene, parent, pos);
+    World::EntityID groundDrop = groundDropPrefab(scene, parent, pos);
 
     Transform *pTransform = Utils::assignTransform(scene, groundDrop, parent);
     pTransform->pos = pos;
 
     scene.Assign<HealthPack>(groundDrop);
 
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.2, 0.75), 0, groundDrop, {255, 154, 198});
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(0.75, 0.2), 0, groundDrop, {255, 154, 198});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.2, 0.75), 0, groundDrop, {255, 154, 198});
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.75, 0.2), 0, groundDrop, {255, 154, 198});
 
     return groundDrop;
 }
 
-World::EntityID Prefabs::spawnAmmoPackPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
+World::EntityID spawnAmmoPackPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
 {
-    World::EntityID groundDrop = Prefabs::groundDropPrefab(scene, parent, pos);
+    World::EntityID groundDrop = groundDropPrefab(scene, parent, pos);
 
     Transform *pTransform = Utils::assignTransform(scene, groundDrop, parent);
     pTransform->pos = pos;
@@ -148,7 +153,7 @@ World::EntityID Prefabs::spawnAmmoPackPrefab(World::Scene &scene, World::EntityI
     return groundDrop;
 }
 
-World::EntityID Prefabs::spawnCratePrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
+World::EntityID spawnCratePrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
 {
     World::EntityID crate = scene.NewEntity();
 
@@ -162,29 +167,29 @@ World::EntityID Prefabs::spawnCratePrefab(World::Scene &scene, World::EntityID p
     Color outlineColor = {140, 140, 140};
 
     World::EntityID visual = spawnRectangle(scene, Vec2(0, 0), Vec2(2, 2), 0, crate, {35, 142, 249}, true);
-    Prefabs::spawnRectangle(scene, Vec2(0, 0.5 - thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
-    Prefabs::spawnRectangle(scene, Vec2(0, -0.5 + thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
-    Prefabs::spawnRectangle(scene, Vec2(0.5 - thickness / 2, 0), Vec2(thickness, 1), 0, visual, outlineColor);
-    Prefabs::spawnRectangle(scene, Vec2(-0.5 + thickness / 2, 0), Vec2(thickness, 1), 0, visual, outlineColor);
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(thickness, sqrt(2 - 2 * thickness)), -M_PI / 4, visual, outlineColor);
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(thickness, sqrt(2 - 2 * thickness)), M_PI / 4, visual, outlineColor);
+    spawnRectangle(scene, Vec2(0, 0.5 - thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
+    spawnRectangle(scene, Vec2(0, -0.5 + thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
+    spawnRectangle(scene, Vec2(0.5 - thickness / 2, 0), Vec2(thickness, 1), 0, visual, outlineColor);
+    spawnRectangle(scene, Vec2(-0.5 + thickness / 2, 0), Vec2(thickness, 1), 0, visual, outlineColor);
+    spawnRectangle(scene, Vec2(0, 0), Vec2(thickness, sqrt(2 - 2 * thickness)), -M_PI / 4, visual, outlineColor);
+    spawnRectangle(scene, Vec2(0, 0), Vec2(thickness, sqrt(2 - 2 * thickness)), M_PI / 4, visual, outlineColor);
 
     return crate;
 }
 
-World::EntityID Prefabs::spawnWallPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
+World::EntityID spawnWallPrefab(World::Scene &scene, World::EntityID parent, Vec2 pos)
 {
     World::EntityID wall = scene.NewEntity();
 
     Transform *pTransform = Utils::assignTransform(scene, wall, parent);
     pTransform->pos = pos;
 
-    Prefabs::spawnRectangle(scene, Vec2(0, 0), Vec2(4, 4), 0, wall, {255, 255, 255}, true);
+    spawnRectangle(scene, Vec2(0, 0), Vec2(4, 4), 0, wall, {255, 255, 255}, true);
 
     return wall;
 }
 
-World::EntityID Prefabs::spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
+World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
 {
     // Player
     World::EntityID player = scene.NewEntity();
@@ -259,3 +264,5 @@ World::EntityID Prefabs::spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
     }
     return player;
 }
+} // namespace Prefabs
+#endif

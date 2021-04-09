@@ -1,10 +1,13 @@
+#ifndef SAT_H
+#define SAT_H
+
 #include <vector>
 #include <iostream>
 
-#include "matrix.hpp"
-#include "vec2.hpp"
-#include "scene.hpp"
-#include "components.hpp"
+#include "matrix.cpp"
+#include "vec2.cpp"
+#include "scene.cpp"
+#include "components.cpp"
 
 void project_onto_axis(std::vector<Vec2> &verticies, Vec2 &axis, double &min, double &max)
 {
@@ -132,3 +135,4 @@ bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &
 
     return true;
 }
+#endif
