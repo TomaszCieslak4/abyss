@@ -19,6 +19,8 @@
 
 // #define SERVER
 
+#define CLIENT_PREDICTION
+
 using namespace emscripten;
 
 enum Action
@@ -28,6 +30,7 @@ enum Action
     left,
     right,
     interact,
+    aim,
     fire,
     MAX = fire
 };
@@ -62,6 +65,84 @@ void calculateMatrix(World::Scene &scene, World::EntityID ent)
     for (World::EntityID ent : pChildren->children)
     {
         calculateMatrix(scene, ent);
+    }
+}
+
+World::EntityID findClosestDrop(World::EntityID user)
+{
+    Transform *pUsrTransform = scene.Get<Transform>(user);
+    double min_dist = INFINITY;
+    World::EntityID closest_drop = INVALID_ENTITY;
+
+    for (World::EntityID ent : SceneView<GroundDrop, Transform>(scene))
+    {
+        Transform *pTransform = scene.Get<Transform>(ent);
+
+        double sqr_dist = pUsrTransform->pos.sqr_dist(pTransform->pos);
+        if (sqr_dist < min_dist && sqr_dist < Game::INTERACT_RANGE * Game::INTERACT_RANGE)
+        {
+            min_dist = sqr_dist;
+            closest_drop = ent;
+        }
+    }
+    return closest_drop;
+}
+
+void pickupDrop(World::EntityID user, World::EntityID drop)
+{
+    HealthPack *pHealthPack = scene.Get<HealthPack>(drop);
+    if (pHealthPack != nullptr)
+    {
+        Health *pHealth = scene.Get<Health>(user);
+        pHealth->health = pHealth->max_health;
+        scene.Remove<GroundDrop>(drop);
+        scene.Assign<DeathAnimator>(drop);
+        return;
+    }
+
+    AmmoPack *pAmmoPack = scene.Get<AmmoPack>(drop);
+    if (pAmmoPack != nullptr)
+    {
+        Children *pChildren = scene.Get<Children>(user);
+        World::EntityID spawnpoint = pChildren->children.back();
+        Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
+
+        Weapon *pWeapon = scene.Get<Weapon>(pSpawnpointChildren->children[0]);
+        pWeapon->ammo = pWeapon->max_ammo;
+
+        scene.Remove<GroundDrop>(drop);
+        scene.Assign<DeathAnimator>(drop);
+        return;
+    }
+
+    Children *pChildren = scene.Get<Children>(drop);
+    World::EntityID droppedObj = pChildren->children.back();
+    Weapon *pWeapon = scene.Get<Weapon>(droppedObj);
+
+    if (pWeapon != nullptr)
+    {
+        Children *pChildren = scene.Get<Children>(user);
+        World::EntityID spawnpoint = pChildren->children.back();
+        Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
+
+        Utils::setParent(scene, droppedObj, spawnpoint);
+        Transform *pTransform = scene.Get<Transform>(droppedObj);
+        pTransform->pos = Vec2::zero();
+
+        if (pSpawnpointChildren->children.size() > 0)
+        {
+            World::EntityID oldWeapon = pSpawnpointChildren->children[0];
+            Utils::setParent(scene, oldWeapon, drop);
+            Transform *pTransform = scene.Get<Transform>(oldWeapon);
+            pTransform->pos = Vec2::zero();
+            pTransform->rotation = 0;
+            Despawn *pDespawn = scene.Assign<Despawn>(drop);
+            pDespawn->time_to_despawn = 10;
+            return;
+        }
+
+        scene.Remove<GroundDrop>(drop);
+        scene.Assign<DeathAnimator>(drop);
     }
 }
 
@@ -101,9 +182,6 @@ void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
     {
         Mat3 object_to_view = view_matrix * pObjectToWorld->matrix;
         Outline *pOutline = scene.Get<Outline>(ent);
-        // std::cout << "HERE" << std::endl;
-
-        // Rect *pRect = scene.Get<Rect>(ent);
 
         EM_ASM({
             Module.context.save();
@@ -287,142 +365,60 @@ void GroundDropSystem(World::Scene &scene, double elapsedTime)
     }
 }
 
-void PlayerMovementSystem(World::Scene &scene)
+void PlayerActionsSystem(World::Scene &scene)
 {
-    if (key_state.test(Action::forward))
+    if (key_state.test(Action::forward) && !last_key_state.test(Action::forward))
     {
         bufferInsert<uint8_t>(outBuffer, Action::forward);
     }
-    if (key_state.test(Action::backward))
+    else if (!key_state.test(Action::forward) && last_key_state.test(Action::forward))
     {
         bufferInsert<uint8_t>(outBuffer, Action::backward);
     }
-    if (key_state.test(Action::left))
+
+    if (key_state.test(Action::backward) && !last_key_state.test(Action::backward))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::backward);
+    }
+    else if (!key_state.test(Action::backward) && last_key_state.test(Action::backward))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::forward);
+    }
+
+    if (key_state.test(Action::left) && !last_key_state.test(Action::left))
     {
         bufferInsert<uint8_t>(outBuffer, Action::left);
     }
-    if (key_state.test(Action::right))
+    else if (!key_state.test(Action::left) && last_key_state.test(Action::left))
     {
         bufferInsert<uint8_t>(outBuffer, Action::right);
     }
-    // const double MOVEMENT_SPEED = 10;
-    // for (World::EntityID ent : SceneView<User, Rigidbody, Transform>(scene))
-    // {
-    //     // Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
 
-    //     // pRigidbody->velocity.y = 0;
-    //     // pRigidbody->velocity.x = 0;
-    //     // if (key_state.test(Action::forward))
-    //     // {
-    //     //     pRigidbody->velocity.y += MOVEMENT_SPEED;
-    //     // }
-    //     // if (key_state.test(Action::backward))
-    //     // {
-    //     //     pRigidbody->velocity.y -= MOVEMENT_SPEED;
-    //     // }
-    //     // if (key_state.test(Action::left))
-    //     // {
-    //     //     pRigidbody->velocity.x -= MOVEMENT_SPEED;
-    //     // }
-    //     // if (key_state.test(Action::right))
-    //     // {
-    //     //     pRigidbody->velocity.x += MOVEMENT_SPEED;
-    //     // }
-
-    //     for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene, true))
-    //     {
-    //         ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
-
-    //         double size = std::min(screen_size.x, screen_size.y);
-    //         Vec2 world_pos = pObjectToWorld->matrix * ((mouse_pos - screen_size / 2) / size);
-    //         Transform *pTransform = scene.Get<Transform>(ent);
-    //         pTransform->rotation = (world_pos - pTransform->pos).get_angle();
-    //     }
-    // }
-}
-
-void InteractSystem(World::Scene &scene)
-{
-    const double INTERACT_RANGE = 2.7;
-
-    for (World::EntityID usr : SceneView<User, Children, Transform, Health>(scene))
+    if (key_state.test(Action::right) && !last_key_state.test(Action::right))
     {
-        Transform *pUsrTransform = scene.Get<Transform>(usr);
-        double min_dist = INFINITY;
-        World::EntityID closest_drop = INVALID_ENTITY;
+        bufferInsert<uint8_t>(outBuffer, Action::right);
+    }
+    else if (!key_state.test(Action::right) && last_key_state.test(Action::right))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::left);
+    }
 
-        for (World::EntityID ent : SceneView<GroundDrop, Transform>(scene))
-        {
-            Transform *pTransform = scene.Get<Transform>(ent);
+    if (key_state.test(Action::interact) && !last_key_state.test(Action::interact))
+    {
+        World::EntityID closest_drop = findClosestDrop(user);
+        if (closest_drop != INVALID_ENTITY)
+            bufferInsert<uint8_t>(outBuffer, Action::interact);
+    }
 
-            double sqr_dist = pUsrTransform->pos.sqr_dist(pTransform->pos);
-            if (sqr_dist < min_dist && sqr_dist < INTERACT_RANGE * INTERACT_RANGE)
-            {
-                min_dist = sqr_dist;
-                closest_drop = ent;
-            }
-        }
+    for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene, true))
+    {
+        ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
 
-        if (closest_drop == INVALID_ENTITY) continue;
-
-        // PICKUP
-        if (!(!last_key_state.test(Action::interact) && key_state.test(Action::interact))) continue;
-
-        HealthPack *pHealthPack = scene.Get<HealthPack>(closest_drop);
-        if (pHealthPack != nullptr)
-        {
-            Health *pHealth = scene.Get<Health>(usr);
-            pHealth->health = pHealth->max_health;
-            scene.Remove<GroundDrop>(closest_drop);
-            scene.Assign<DeathAnimator>(closest_drop);
-            continue;
-        }
-
-        AmmoPack *pAmmoPack = scene.Get<AmmoPack>(closest_drop);
-        if (pAmmoPack != nullptr)
-        {
-            Children *pChildren = scene.Get<Children>(usr);
-            World::EntityID spawnpoint = pChildren->children.back();
-            Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
-
-            Weapon *pWeapon = scene.Get<Weapon>(pSpawnpointChildren->children[0]);
-            pWeapon->ammo = pWeapon->max_ammo;
-
-            scene.Remove<GroundDrop>(closest_drop);
-            scene.Assign<DeathAnimator>(closest_drop);
-            continue;
-        }
-
-        Children *pChildren = scene.Get<Children>(closest_drop);
-        World::EntityID drop = pChildren->children.back();
-        Weapon *pWeapon = scene.Get<Weapon>(drop);
-
-        if (pWeapon != nullptr)
-        {
-            Children *pChildren = scene.Get<Children>(usr);
-            World::EntityID spawnpoint = pChildren->children.back();
-            Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
-
-            Utils::setParent(scene, drop, spawnpoint);
-            Transform *pTransform = scene.Get<Transform>(drop);
-            pTransform->pos = Vec2::zero();
-
-            if (pSpawnpointChildren->children.size() > 0)
-            {
-                World::EntityID oldWeapon = pSpawnpointChildren->children[0];
-                Utils::setParent(scene, oldWeapon, closest_drop);
-                Transform *pTransform = scene.Get<Transform>(oldWeapon);
-                pTransform->pos = Vec2::zero();
-                pTransform->rotation = 0;
-                Despawn *pDespawn = scene.Assign<Despawn>(closest_drop);
-                pDespawn->time_to_despawn = 10;
-                continue;
-            }
-
-            scene.Remove<GroundDrop>(closest_drop);
-            scene.Assign<DeathAnimator>(closest_drop);
-            continue;
-        }
+        double size = std::min(screen_size.x, screen_size.y);
+        Vec2 world_pos = pObjectToWorld->matrix * ((mouse_pos - screen_size / 2) / size);
+        Transform *pTransform = scene.Get<Transform>(user);
+        bufferInsert<uint8_t>(outBuffer, Action::aim);
+        bufferInsert<double>(outBuffer, (world_pos - pTransform->pos).get_angle());
     }
 }
 
@@ -435,7 +431,13 @@ void DeathAnimatorSystem(World::Scene &scene, double dt)
         pTransform->scale = Vec2::lerp(pTransform->scale, Vec2::zero(), 10 * dt);
         if (pTransform->scale.sqr_magnitude() <= 0.01)
         {
+#ifdef SERVER
             Utils::destroyEntity(scene, ent);
+#endif
+#ifndef SERVER
+            if (World::IsClientEntity(ent))
+                Utils::destroyEntity(scene, ent);
+#endif
         }
     }
 }
@@ -516,11 +518,6 @@ void ClientNetworkingSystem(World::Scene &scene)
 
         NetworkOp op = static_cast<NetworkOp>(comp >> 30);
         comp = comp & ((1U << 30U) - 1U);
-
-        if (World::IsClientEntity(ent))
-        {
-            std::cout << "invalid" << std::endl;
-        }
 
         switch (op)
         {
@@ -642,7 +639,6 @@ void ClientNetworkingSystem(World::Scene &scene)
             }
             case NetworkOp::destroy:
             {
-                std::cout << "HERE delete " << comp << ", " << World::GetEntityIndex(ent) << std::endl;
                 if (comp == 0)
                 {
                     scene.DestroyEntity(ent);
@@ -668,7 +664,6 @@ void ClientNetworkingSystem(World::Scene &scene)
                 pTransform->scale = Vec2(30, 30);
 
                 scene.Assign<Camera>(camera);
-                std::cout << "created camera " << World::GetEntityIndex(camera) << std::endl;
             }
         }
         user = newUser;
@@ -721,61 +716,86 @@ void ServerNetworkingSystem(World::Scene &scene)
     outBuffer.clear();
     bufferInsert<World::EntityID>(outBuffer, INVALID_ENTITY);
 
-    // if (inBuffer.size() > 0)
-    //     std::cout << inBuffer.size() << std::endl;
+    // Handle client actions
+    int packetPos = 0;
+    while (packetPos < inBuffer.size())
+    {
+        World::EntityID user = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
+        packetPos += sizeof(World::EntityID);
 
-    // // Handle client actions
-    // int packetPos = 0;
-    // while (packetPos < inBuffer.size())
-    // {
-    //     World::EntityID user = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
-    //     packetPos += sizeof(World::EntityID);
+        uint32_t size = reinterpret_cast<uint32_t &>(inBuffer[packetPos]);
+        packetPos += sizeof(uint32_t);
 
-    //     uint32_t size = reinterpret_cast<uint32_t &>(inBuffer[packetPos]);
-    //     packetPos += sizeof(uint32_t);
+        while (size > 0)
+        {
+            size--;
+            switch ((Action)inBuffer[packetPos++])
+            {
+                case Action::forward:
+                {
+                    Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+                    if (pRigidbody == nullptr) break;
+                    pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+                    break;
+                }
+                case Action::backward:
+                {
+                    Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+                    if (pRigidbody == nullptr) break;
+                    pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+                    break;
+                }
+                case Action::left:
+                {
+                    Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+                    if (pRigidbody == nullptr) break;
+                    pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+                    break;
+                }
+                case Action::right:
+                {
+                    Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+                    if (pRigidbody == nullptr) break;
+                    pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+                    break;
+                }
+                case Action::interact:
+                {
+                    World::EntityID closest_drop = findClosestDrop(user);
+                    if (closest_drop == INVALID_ENTITY) break;
+                    pickupDrop(user, closest_drop);
+                    break;
+                }
+                case Action::aim:
+                {
+                    if (size < sizeof(double))
+                    {
+                        // Ignore Remaining messages for client
+                        packetPos += size;
+                        size = 0;
+                        break;
+                    }
 
-    //     std::cout << "GOT DATA: " << user << " size " << size << std::endl;
-    //     while (size > 0)
-    //     {
-    //         size--;
-    //         switch ((Action)inBuffer[packetPos++])
-    //         {
-    //             case Action::forward:
-    //             {
-    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
-    //                 if (pRigidbody == nullptr) break;
-    //                 pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
-    //                 break;
-    //             }
-    //             case Action::backward:
-    //             {
-    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
-    //                 if (pRigidbody == nullptr) break;
-    //                 pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
-    //                 break;
-    //             }
-    //             case Action::left:
-    //             {
-    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
-    //                 if (pRigidbody == nullptr) break;
-    //                 pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
-    //                 break;
-    //             }
-    //             case Action::right:
-    //             {
-    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
-    //                 if (pRigidbody == nullptr) break;
-    //                 pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
-    //                 break;
-    //             }
-    //             default:
-    //             {
-    //                 // Ignore invalid messages
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
+                    double forward = fmod(reinterpret_cast<double &>(inBuffer[packetPos]), 360);
+                    packetPos += sizeof(double);
+                    size -= sizeof(double);
+
+                    Transform *pTransform = scene.Get<Transform>(user);
+                    if (pTransform == nullptr) break;
+
+                    pTransform->rotation = forward;
+                    break;
+                }
+                default:
+                {
+                    // Ignore Remaining messages for client
+                    packetPos += size;
+                    size = 0;
+                    break;
+                }
+            }
+        }
+    }
     inBuffer.clear();
 }
 
@@ -835,7 +855,7 @@ uint32_t onConnect()
 void stateSync(uint32_t buffer)
 {
     World::EntityID *user = reinterpret_cast<World::EntityID *>(buffer);
-    std::cout << "Started sync, UserId: " << *user << ", " << World::GetEntityIndex(*user) << std::endl;
+    std::cout << "Sync start, UserId: " << *user << std::endl;
 
     tempBuffer.clear();
     bufferInsert<World::EntityID>(tempBuffer, *user);
@@ -892,80 +912,80 @@ void update(double dt)
     ObjectToWorldSystem(scene);
     DespawnSystem(scene, dt);
     GroundDropSystem(scene, elapsedTime);
-    InteractSystem(scene);
     DeathAnimatorSystem(scene, dt);
     HealthSystem(scene);
     EventSystem(scene);
     ServerNetworkingSystem(scene);
-
-    // for (World::EntityID ent : SceneView<ObjectToWorld, Transform>(scene))
-    // {
-    //     // Children *pChildren = scene.Get<Children>(ent);
-    //     // pChildren->children[0]
-    //     ObjectToWorld *pTransform = scene.Get<ObjectToWorld>(ent);
-
-    //     // Do stuff
-    //     // pHealth->health = std::max(0, pHealth->health - 1);
-    //     // pTransform->rotation = pTransform->rotation + dt * 1;
-    //     for (int i = 0; i < 9; i++)
-    //     {
-    //         std::cout << pTransform->matrix.array[i] << ", ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-
-    // for (World::EntityID ent : SceneView<User, Rigidbody>(scene))
-    // {
-    //     // Children *pChildren = scene.Get<Children>(ent);
-    //     // pChildren->children[0]
-    //     Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
-
-    //     // Do stuff
-    //     // pHealth->health = std::max(0, pHealth->health - 1);
-    //     // pTransform->rotation = pTransform->rotation + dt * 1;
-    //     // for (int i = 0; i < 9; i++)
-    //     // {
-    //     //     std::cout << pTransform->matrix.array[i] << ", ";
-    //     // }
-    //     // std::cout << dt << ", " << std::endl;
-    //     pRigidbody->velocity.x = 10;
-    // }
-
 #endif
 
 #ifndef SERVER
-    CameraFollowSystem(scene);
 
-    WorldToViewSystem(scene);
     if (user != INVALID_ENTITY)
     {
+#ifdef CLIENT_PREDICTION
+        RigidbodySystem(scene, dt);
+        ObjectToWorldSystem(scene);
+        CollisionSystem(scene);
+#endif
+        ObjectToWorldSystem(scene);
+        CameraFollowSystem(scene);
+        WorldToViewSystem(scene);
+        PlayerActionsSystem(scene);
+#ifdef CLIENT_PREDICTION
+        // GroundDropSystem(scene, elapsedTime);
+        // DeathAnimatorSystem(scene, dt);
+        // HealthSystem(scene);
+        EventSystem(scene);
+#endif
         RenderSystem(scene);
-        PlayerMovementSystem(scene);
     }
     ClientNetworkingSystem(scene);
 #endif
-
-    // for (World::EntityID ent : SceneView<Camera, Transform>(scene))
-    // {
-    //     // Children *pChildren = scene.Get<Children>(ent);
-    //     // pChildren->children[0]
-    //     Transform *pTransform = scene.Get<Transform>(ent);
-
-    //     // Do stuff
-    //     // pHealth->health = std::max(0, pHealth->health - 1);
-    //     pTransform->rotation = pTransform->rotation + dt * 1;
-    // }
     last_key_state = key_state;
 }
 
-int main(int argc, char *argv[])
+void stop()
 {
+#ifdef SERVER
+    EM_ASM({
+        clearTimeout(Module.loop);
+        clearInterval(Module.interval);
+        Module.socket.terminate();
+    });
+#endif
+#ifndef SERVER
+    EM_ASM({
+        cancelAnimationFrame(Module.loop);
+        Module.canvas.onmousedown = function(){};
+        Module.canvas.onmouseup = function(){};
+        Module.canvas.onmousemove = function(){};
+        Module.canvas.onkeydown = function(){};
+        Module.canvas.onkeyup = function(){};
+        Module.socket.close();
+    });
+#endif
+}
+
+void start()
+{
+    // Reset
+    scene = World::Scene();
+    elapsedTime = 0;
+    key_state = {0};
+    last_key_state = {0};
+    mouse_pos = Vec2(0, 0);
+    screen_size = Vec2(0, 0);
+    tempBuffer.clear();
+    inBuffer.clear();
+    outBuffer.clear();
+    user = INVALID_ENTITY;
+
 #ifndef SERVER
     EM_ASM({
         Module.canvas = document.getElementById('canvas');
         Module.context = Module.canvas.getContext('2d');
 
-        let keyMap = ({'w' : 1, 's' : 0, 'a' : 2, 'd' : 3, 'e' : 4});
+        let keyMap = ({'w' : 0, 's' : 1, 'a' : 2, 'd' : 3, 'e' : 4});
 
         Module.canvas.onmousedown = function(evt) { Module.onMouseDown(evt.clientX, evt.clientY, evt.button); };
         Module.canvas.onmouseup = function(evt) { Module.onMouseUp(evt.clientX, evt.clientY, evt.button); };
@@ -983,7 +1003,6 @@ int main(int argc, char *argv[])
                 Module.onKeyUp(key);
         };
 
-        let request = 0;
         let lastTime = performance.now();
 
         function update(timestamp)
@@ -991,10 +1010,10 @@ int main(int argc, char *argv[])
             let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
             lastTime = timestamp;
             Module.update(dt);
-            request = window.requestAnimationFrame(update);
+            Module.loop = window.requestAnimationFrame(update);
         }
 
-        request = window.requestAnimationFrame(update);
+        Module.loop = window.requestAnimationFrame(update);
 
         // SETUP WEBSOCKET
         console.log('attempting connection to ws://' + window.location.hostname + ':' + $0);
@@ -1004,6 +1023,7 @@ int main(int argc, char *argv[])
 
         Module.socket.onclose = function(event)
         {
+            Module.stop();
             console.log('closed code:' + event.code + ' reason:' + event.reason + ' wasClean:' + event.wasClean);
         };
         Module.socket.onmessage = function(event)
@@ -1051,13 +1071,10 @@ int main(int argc, char *argv[])
                     'message', function(event) {
                         let array = new Uint8Array(event);
                         let buffer = Module.onPacket(array.length + 12);
-                        new DataView(Module.HEAPU8.buffer).setUint32(buffer, ws.entityVersion);
-                        new DataView(Module.HEAPU8.buffer).setUint32(buffer + 4, ws.entityIndex);
-                        new DataView(Module.HEAPU8.buffer).setUint32(buffer + 8, array.length);
-                        // let memory =
-                        // memory[0] = ws.entityVersion;
-                        // memory[1] = ws.entityIndex;
-                        // memory[2] = array.length;
+                        let view = new DataView(Module.HEAPU8.buffer);
+                        view.setUint32(buffer, ws.entityVersion, true);
+                        view.setUint32(buffer + 4, ws.entityIndex, true);
+                        view.setUint32(buffer + 8, array.length, true);
                         new Uint8Array(Module.HEAPU8.buffer).set(array, buffer + 12);
                     });
 
@@ -1076,7 +1093,7 @@ int main(int argc, char *argv[])
             return (time[0] * 1000) + (time[1] / 1000000);
         }
 
-        let request = 0;
+        Module.loop = 0;
         let lastTime = getTime();
 
         function update()
@@ -1085,12 +1102,12 @@ int main(int argc, char *argv[])
             let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
             lastTime = timestamp;
             Module.update(dt);
-            request = setTimeout(update, (1 / 60) * 1000);
+            Module.loop = setTimeout(update, (1 / 60) * 1000);
         }
 
-        request = setTimeout(update, 0);
+        Module.loop = setTimeout(update, 0);
 
-        const interval = setInterval(
+        Module.interval = setInterval(
             function ping() {
                 for (let ws of Module.socket.clients)
                 {
@@ -1115,6 +1132,13 @@ int main(int argc, char *argv[])
     scene.Assign<Children>(World::ROOT_ENTITY);
     Game::loadScene(scene);
 #endif
+}
+
+int main(int argc, char *argv[])
+{
+#ifdef SERVER
+    start();
+#endif
     return 0;
 }
 
@@ -1134,4 +1158,6 @@ EMSCRIPTEN_BINDINGS(my_module)
     function("onConnect", &onConnect);
     function("stateSync", &stateSync);
     function("onDisconnect", &onDisconnect);
+    function("start", &start);
+    function("stop", &stop);
 }

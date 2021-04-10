@@ -15,7 +15,8 @@ constexpr int PLAY_RADIUS = 50;
 constexpr int BOUNDRY_DEPTH = 20;
 constexpr int COMBINED_SIZE = BOUNDRY_DEPTH + PLAY_RADIUS;
 constexpr int MIN_SPAWN_SEPERATION = 10;
-const double MOVEMENT_SPEED = 10;
+constexpr double MOVEMENT_SPEED = 10;
+constexpr double INTERACT_RANGE = 2.7;
 
 enum Spawn
 {
