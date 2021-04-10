@@ -16,12 +16,11 @@ import { PORT } from "../../config";
 interface MyState {
   username: string;
   newPassword: string;
-  currentPassword: string;
   checkbox: string;
   errors: string[];
   success: string[];
 }
-interface MyProp extends RouteComponentProps<any> { }
+interface MyProp extends RouteComponentProps<any> {}
 
 class Profile extends Component<MyProp, MyState> {
   constructor(props: MyProp) {
@@ -29,7 +28,6 @@ class Profile extends Component<MyProp, MyState> {
     this.state = {
       username: "",
       newPassword: "",
-      currentPassword: "",
       checkbox: "",
       errors: [],
       success: [],
@@ -67,9 +65,6 @@ class Profile extends Component<MyProp, MyState> {
     if (this.state.checkbox === "") {
       errors.push("Please accept the changes.");
     }
-    if (this.state.currentPassword.length === 0) {
-      errors.push("Enter password to change account details.");
-    }
     if (
       this.state.newPassword.length > 0 &&
       (this.state.newPassword.length < 8 ||
@@ -80,20 +75,15 @@ class Profile extends Component<MyProp, MyState> {
       );
     }
     if (errors.length === 0) {
-      const result = await fetch(`http://${window.location.hostname}:${PORT}/api/auth/updatepassword`, {
-        method: "PUT",
-        headers: {
-          Authorization:
-            "Basic " +
-            btoa(
-              this.state.username +
-              ":" +
-              this.state.currentPassword +
-              ":" +
-              this.state.newPassword
-            ),
-        },
-      });
+      const result = await fetch(
+        `http://${window.location.hostname}:${PORT}/api/auth/updatepassword`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: "Basic " + btoa(this.state.newPassword),
+          },
+        }
+      );
       var body = await result.json();
       if (result.status === 200) {
         success.push(body.message);
@@ -117,18 +107,13 @@ class Profile extends Component<MyProp, MyState> {
     if (this.state.username === "") {
       errors.push("Error displaying user information, please login.");
     }
-    if (this.state.currentPassword === "") {
-      errors.push("Please enter a password.");
-    }
     if (errors.length === 0) {
-      const result = await fetch(`http://${window.location.hostname}:${PORT}/api/auth/delete`, {
-        method: "DELETE",
-        headers: {
-          Authorization:
-            "Basic " +
-            btoa(this.state.username + ":" + this.state.currentPassword),
-        },
-      });
+      const result = await fetch(
+        `http://${window.location.hostname}:${PORT}/api/auth/delete`,
+        {
+          method: "DELETE",
+        }
+      );
       var body = await result.json();
       if (result.status === 200) {
         localStorage.clear();
@@ -176,19 +161,8 @@ class Profile extends Component<MyProp, MyState> {
           </div>
           <div className="input-wrapper"></div>
           <FormControl component="fieldset"></FormControl>
-          <div className="input-wrapper">
-            <TextField
-              name="currentPassword"
-              onChange={this.handleChange}
-              label="Existing Password (required)"
-              type="password"
-              autoComplete="current-password"
-              variant="filled"
-              className="textfield"
-            />
-          </div>
           <FormControlLabel
-            label="I confirm these changes: (required)"
+            label="I confirm updating my account: (required)"
             labelPlacement="top"
             control={
               <Checkbox

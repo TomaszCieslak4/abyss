@@ -11,6 +11,7 @@ import {
 import Login from "./pages/Login/Login";
 import Registration from "./pages/Registration/Registration";
 import Menu from "./pages/Menu/Menu";
+import Game from "./pages/Game/Game";
 import Profile from "./pages/Profile/Profile";
 
 class App extends Component {
@@ -23,6 +24,7 @@ class App extends Component {
           <Switch>
             <Route path="/registration" component={Registration}></Route>
             <Route path="/profile" component={Profile}></Route>
+            <Route path="/game" component={Game}></Route>
             <Route path="/menu" component={Menu}></Route>
             <Route path="/" component={Login}></Route>
           </Switch>

@@ -10,7 +10,7 @@ interface MyState {
   highScore: string;
   lastScore: string;
 }
-interface MyProp extends RouteComponentProps<any> { }
+interface MyProp extends RouteComponentProps<any> {}
 
 class Menu extends Component<MyProp, MyState> {
   constructor(props: MyProp) {
@@ -22,11 +22,34 @@ class Menu extends Component<MyProp, MyState> {
       highScore: "",
       lastScore: "",
     };
+    this.logout = this.logout.bind(this);
   }
 
   componentDidMount() {
     this.getStats = this.getStats.bind(this);
     this.getStats();
+  }
+
+  async logout() {
+    let errors: string[] = [];
+    //Required to clear session
+    const result = await fetch(
+      `http://${window.location.hostname}:${PORT}/api/auth/logout`,
+      {
+        method: "POST",
+      }
+    );
+    var body = await result.json();
+    if (result.status === 200) {
+      localStorage.clear();
+      this.props.history.push("/");
+    } else {
+      errors.push(body.error);
+    }
+
+    this.setState({
+      errors: errors,
+    });
   }
 
   async getStats() {
@@ -42,12 +65,12 @@ class Menu extends Component<MyProp, MyState> {
       errors.push("Cannot retrieve information, user is not logged in.");
     }
     if (errors.length === 0) {
-      const result = await fetch(`http://${window.location.hostname}:${PORT}/api/user/userscores`, {
-        method: "GET",
-        headers: {
-          Authorization: "Basic " + btoa(username),
-        },
-      });
+      const result = await fetch(
+        `http://${window.location.hostname}:${PORT}/api/user/userscores`,
+        {
+          method: "GET",
+        }
+      );
       var body = await result.json();
       if (result.status === 200) {
         highScore = body.highScore;
@@ -58,9 +81,12 @@ class Menu extends Component<MyProp, MyState> {
     }
     if (errors.length === 0) {
       // Get top ten leaderboards
-      const result = await fetch(`http://${window.location.hostname}:${PORT}/api/topten`, {
-        method: "GET",
-      });
+      const result = await fetch(
+        `http://${window.location.hostname}:${PORT}/api/topten`,
+        {
+          method: "GET",
+        }
+      );
       var body = await result.json();
       if (result.status === 200) {
         topTen = body.topten;
@@ -118,7 +144,13 @@ class Menu extends Component<MyProp, MyState> {
             </tbody>
           </table>
           <h2>Menu</h2>
-          <Button variant="contained" color="primary">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              this.props.history.push("/game");
+            }}
+          >
             Start New Game
           </Button>
           <Button
@@ -127,13 +159,7 @@ class Menu extends Component<MyProp, MyState> {
           >
             Update Gamemode & Profile
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              localStorage.clear();
-              this.props.history.push("/");
-            }}
-          >
+          <Button variant="contained" onClick={this.logout}>
             Logout
           </Button>
 
