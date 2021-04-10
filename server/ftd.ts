@@ -5,7 +5,7 @@
 import express, { query } from "express";
 import { Pool } from "pg";
 
-const websocketServer = require("../game/server/index.js");
+const websocketServer = require("./game.js");
 
 const port = 8000;
 let app = express();
@@ -137,7 +137,7 @@ app.post('/api/nouser/register', async (req, res) => {
 **/
 app.use('/api/auth', async (req, res, next) => {
     //@ts-ignore
-    if(req.session.username) {
+    if (req.session.username) {
         next();
         return;
     }
@@ -150,7 +150,7 @@ app.use('/api/auth', async (req, res, next) => {
         let vals = user_pass.split(':');
         let username = vals ? vals[0] : "";
         let password = vals ? vals[1] : "";
-        
+
         console.log(username + " " + password);
         let sql = 'SELECT * FROM ftduser WHERE username=$1 and password=sha512($2)';
         pool.query(sql, [username, password], (err, pgRes) => {

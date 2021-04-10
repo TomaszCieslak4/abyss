@@ -1,56 +1,40 @@
-import { Button, TextField } from "@material-ui/core";
-import React, { Component } from "react";
-import { RouteComponentProps } from "react-router-dom";
+/* eslint-disable */
+import { Component } from "react";
 import "../../App.css";
 import { PORT } from "../../config";
 
-interface MyState {
-  username: string;
-  password: string;
-  errors: string[];
-}
-interface MyProp extends RouteComponentProps<any> {}
-
-class Game extends Component<MyProp, MyState> {
-  constructor(props: MyProp) {
+class Game extends Component {
+  constructor(props: any) {
     super(props);
-    // this.state = {
-    //   username: "",
-    //   password: "",
-    //   errors: [],
-    // };
-    // this.handleChange = this.handleChange.bind(this);
-    // this.login = this.login.bind(this);
+    // Test();
   }
 
-  handleChange(event: any) {
+  componentDidMount() {
     //@ts-ignore
-    this.setState({
-      [event.target.name]: event.target.value,
-    });
+    Module.start();
   }
 
-  handleSubmit = (e: any) => {
-    e.preventDefault();
-  };
+  componentWillUnmount() {
+    //@ts-ignore
+    Module.stop();
+  }
 
   render() {
-    return <div>TEST</div>;
-
-    //     <style>
-    //     *{
-    //         padding: 0;
-    //         margin: 0;
-    //         box-sizing: border-box;
-    //     }
-    //     canvas{
-    //         border:none; background: black;
-    //         width: 100%;
-    //         height: 100%;
-    //     }
-    // </style>
-    // <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-    // {{{ SCRIPT }}}
+    return (<canvas
+      id="canvas"
+      onContextMenu={event => event.preventDefault()}
+      tabIndex={-1}
+      style={{
+        border: "none",
+        background: "black",
+        width: "100%",
+        height: "100%",
+        padding: "0",
+        margin: "0",
+        boxSizing: "border-box",
+      }}>
+    </canvas>
+    );
   }
 }
 export default Game;
