@@ -9,7 +9,7 @@ interface MyState {
   password: string;
   errors: string[];
 }
-interface MyProp extends RouteComponentProps<any> { }
+interface MyProp extends RouteComponentProps<any> {}
 
 class Login extends Component<MyProp, MyState> {
   constructor(props: MyProp) {
@@ -40,13 +40,16 @@ class Login extends Component<MyProp, MyState> {
       errors.push("Please enter a password.");
     }
     if (errors.length === 0) {
-      const result = await fetch(`http://${window.location.hostname}:${PORT}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          Authorization:
-            "Basic " + btoa(this.state.username + ":" + this.state.password),
-        },
-      });
+      const result = await fetch(
+        `http://${window.location.hostname}:${PORT}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Basic " + btoa(this.state.username + ":" + this.state.password),
+          },
+        }
+      );
       var body = await result.json();
       if (result.status === 200) {
         localStorage.setItem("username", this.state.username);
