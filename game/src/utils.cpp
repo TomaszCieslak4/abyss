@@ -88,6 +88,7 @@ Transform *assignTransform(World::Scene &scene, World::EntityID ent, World::Enti
 
 inline double lerp(double min, double max, double t) { return min + (max - min) * t; }
 inline double drandom() { return (double)std::rand() / (double)RAND_MAX; }
+inline double clamp(double value, double min, double max) { return std::min(std::max(value, min), max); }
 } // namespace Utils
 
 #endif

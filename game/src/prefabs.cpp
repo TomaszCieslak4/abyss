@@ -189,6 +189,18 @@ World::EntityID spawnWallPrefab(World::Scene &scene, World::EntityID parent, Vec
     return wall;
 }
 
+World::EntityID spawnBulletPrefab(World::Scene &scene, World::EntityID root, Vec2 pos, double rotation)
+{
+    World::EntityID bullet = scene.NewEntity();
+
+    Transform *pTransform = Utils::assignTransform(scene, bullet, root);
+    pTransform->pos = pos;
+
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.2, 0.4), rotation, bullet, {255, 255, 0}, true);
+
+    return bullet;
+}
+
 World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
 {
     // Player

@@ -21,9 +21,7 @@
 
 using namespace emscripten;
 
-constexpr int PORT = 25567;
-
-enum Controls
+enum Action
 {
     forward,
     backward,
@@ -34,23 +32,18 @@ enum Controls
     MAX = fire
 };
 
-struct Packet
-{
-    int size;
-    char *buffer;
-};
-
 World::Scene scene;
 double elapsedTime;
-std::bitset<Controls::MAX + 1> key_state;
-std::bitset<Controls::MAX + 1> last_key_state;
+std::bitset<Action::MAX + 1> key_state;
+std::bitset<Action::MAX + 1> last_key_state;
 Vec2 mouse_pos;
 Vec2 screen_size;
 
-constexpr int BUFFER_SIZE = 10 * 1024 * 1024;
-std::vector<uint8_t> tempPackets(BUFFER_SIZE, 0);
-std::vector<uint8_t> packets(BUFFER_SIZE, 0);
-int packetsSize = sizeof(World::EntityID);
+std::vector<uint8_t> tempBuffer;
+std::vector<uint8_t> inBuffer;
+std::vector<uint8_t> outBuffer;
+
+World::EntityID user = INVALID_ENTITY;
 
 void calculateMatrix(World::Scene &scene, World::EntityID ent)
 {
@@ -86,7 +79,7 @@ void WorldToViewSystem(World::Scene &scene)
 {
     Mat3 identity = Mat3::identity();
 
-    for (World::EntityID ent : SceneView<Transform, Camera>(scene))
+    for (World::EntityID ent : SceneView<Transform, Camera>(scene, true))
     {
         Transform *pTransform = scene.Get<Transform>(ent);
         Camera *pCamera = scene.Get<Camera>(ent);
@@ -108,6 +101,7 @@ void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
     {
         Mat3 object_to_view = view_matrix * pObjectToWorld->matrix;
         Outline *pOutline = scene.Get<Outline>(ent);
+        // std::cout << "HERE" << std::endl;
 
         // Rect *pRect = scene.Get<Rect>(ent);
 
@@ -186,7 +180,7 @@ void RenderSystem(World::Scene &scene)
 {
     Children *pChildren = scene.Get<Children>(World::ROOT_ENTITY);
 
-    for (World::EntityID cam : SceneView<Camera>(scene))
+    for (World::EntityID cam : SceneView<Camera>(scene, true))
     {
         Camera *pCamera = scene.Get<Camera>(cam);
 
@@ -205,7 +199,7 @@ void checkCollisionHelper(World::Scene &scene, World::EntityID ent, World::Entit
 
         if (sat(scene, ent, other, mtv))
         {
-            World::EntityID collisionEvent = scene.NewEntity();
+            World::EntityID collisionEvent = scene.NewEntity(true);
             scene.Assign<Event>(collisionEvent);
             Collision *pCollision = scene.Assign<Collision>(collisionEvent);
             pCollision->source = topEnt;
@@ -262,7 +256,7 @@ void CollisionSystem(World::Scene &scene)
     }
 
     // Resolve Collisions
-    for (World::EntityID ent : SceneView<Collision, Event>(scene))
+    for (World::EntityID ent : SceneView<Collision, Event>(scene, true))
     {
         Collision *pCollision = scene.Get<Collision>(ent);
         Transform *pTransform = scene.Get<Transform>(pCollision->source);
@@ -272,9 +266,9 @@ void CollisionSystem(World::Scene &scene)
 
 void EventSystem(World::Scene &scene)
 {
-    for (World::EntityID ent : SceneView<Event>(scene))
+    for (World::EntityID ent : SceneView<Event>(scene, true))
     {
-        scene.DestroyEntity(ent);
+        Utils::destroyEntity(scene, ent);
     }
 }
 
@@ -295,40 +289,56 @@ void GroundDropSystem(World::Scene &scene, double elapsedTime)
 
 void PlayerMovementSystem(World::Scene &scene)
 {
-    const double MOVEMENT_SPEED = 10;
-    for (World::EntityID ent : SceneView<User, Rigidbody, Transform>(scene))
+    if (key_state.test(Action::forward))
     {
-        Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
-
-        pRigidbody->velocity.y = 0;
-        pRigidbody->velocity.x = 0;
-        if (key_state.test(Controls::forward))
-        {
-            pRigidbody->velocity.y += MOVEMENT_SPEED;
-        }
-        if (key_state.test(Controls::backward))
-        {
-            pRigidbody->velocity.y -= MOVEMENT_SPEED;
-        }
-        if (key_state.test(Controls::left))
-        {
-            pRigidbody->velocity.x -= MOVEMENT_SPEED;
-        }
-        if (key_state.test(Controls::right))
-        {
-            pRigidbody->velocity.x += MOVEMENT_SPEED;
-        }
-
-        for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene))
-        {
-            ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
-
-            double size = std::min(screen_size.x, screen_size.y);
-            Vec2 world_pos = pObjectToWorld->matrix * ((mouse_pos - screen_size / 2) / size);
-            Transform *pTransform = scene.Get<Transform>(ent);
-            pTransform->rotation = (world_pos - pTransform->pos).get_angle();
-        }
+        bufferInsert<uint8_t>(outBuffer, Action::forward);
     }
+    if (key_state.test(Action::backward))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::backward);
+    }
+    if (key_state.test(Action::left))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::left);
+    }
+    if (key_state.test(Action::right))
+    {
+        bufferInsert<uint8_t>(outBuffer, Action::right);
+    }
+    // const double MOVEMENT_SPEED = 10;
+    // for (World::EntityID ent : SceneView<User, Rigidbody, Transform>(scene))
+    // {
+    //     // Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
+
+    //     // pRigidbody->velocity.y = 0;
+    //     // pRigidbody->velocity.x = 0;
+    //     // if (key_state.test(Action::forward))
+    //     // {
+    //     //     pRigidbody->velocity.y += MOVEMENT_SPEED;
+    //     // }
+    //     // if (key_state.test(Action::backward))
+    //     // {
+    //     //     pRigidbody->velocity.y -= MOVEMENT_SPEED;
+    //     // }
+    //     // if (key_state.test(Action::left))
+    //     // {
+    //     //     pRigidbody->velocity.x -= MOVEMENT_SPEED;
+    //     // }
+    //     // if (key_state.test(Action::right))
+    //     // {
+    //     //     pRigidbody->velocity.x += MOVEMENT_SPEED;
+    //     // }
+
+    //     for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene, true))
+    //     {
+    //         ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
+
+    //         double size = std::min(screen_size.x, screen_size.y);
+    //         Vec2 world_pos = pObjectToWorld->matrix * ((mouse_pos - screen_size / 2) / size);
+    //         Transform *pTransform = scene.Get<Transform>(ent);
+    //         pTransform->rotation = (world_pos - pTransform->pos).get_angle();
+    //     }
+    // }
 }
 
 void InteractSystem(World::Scene &scene)
@@ -356,7 +366,7 @@ void InteractSystem(World::Scene &scene)
         if (closest_drop == INVALID_ENTITY) continue;
 
         // PICKUP
-        if (!(!last_key_state.test(Controls::interact) && key_state.test(Controls::interact))) continue;
+        if (!(!last_key_state.test(Action::interact) && key_state.test(Action::interact))) continue;
 
         HealthPack *pHealthPack = scene.Get<HealthPack>(closest_drop);
         if (pHealthPack != nullptr)
@@ -467,15 +477,13 @@ void HealthSystem(World::Scene &scene)
 void CameraFollowSystem(World::Scene &scene)
 {
     const double MOVEMENT_SPEED = 10;
-    for (World::EntityID cam : SceneView<Camera, Transform>(scene))
+    for (World::EntityID cam : SceneView<Camera, Transform>(scene, true))
     {
         Transform *pCamTransform = scene.Get<Transform>(cam);
 
-        for (World::EntityID ent : SceneView<User, Transform>(scene))
-        {
-            Transform *pTransform = scene.Get<Transform>(ent);
+        Transform *pTransform = scene.Get<Transform>(user);
+        if (pTransform != nullptr)
             pCamTransform->pos = Vec2::lerp(pCamTransform->pos, pTransform->pos, 0.05);
-        }
     }
 }
 
@@ -494,25 +502,32 @@ void DespawnSystem(World::Scene &scene, double dt)
     }
 }
 
-void NetworkingClientSystem(World::Scene &scene)
+void ClientNetworkingSystem(World::Scene &scene)
 {
     int packetPos = 0;
 
-    while (packetPos < packetsSize)
+    World::EntityID newUser = INVALID_ENTITY;
+    while (packetPos < inBuffer.size())
     {
-        World::EntityID ent = reinterpret_cast<World::EntityID &>(packets[packetPos]);
+        World::EntityID ent = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
         packetPos += sizeof(World::EntityID);
-        World::ComponentID comp = reinterpret_cast<World::ComponentID &>(packets[packetPos]);
+        World::ComponentID comp = reinterpret_cast<World::ComponentID &>(inBuffer[packetPos]);
         packetPos += sizeof(World::ComponentID);
 
         NetworkOp op = static_cast<NetworkOp>(comp >> 30);
-        comp = comp & ((1U << 31U) - 1U);
+        comp = comp & ((1U << 30U) - 1U);
+
+        if (World::IsClientEntity(ent))
+        {
+            std::cout << "invalid" << std::endl;
+        }
 
         switch (op)
         {
             case NetworkOp::setUser:
             {
                 std::cout << "UserId: " << ent << std::endl;
+                newUser = ent;
                 break;
             }
             case NetworkOp::create:
@@ -574,10 +589,9 @@ void NetworkingClientSystem(World::Scene &scene)
             }
             case NetworkOp::modify:
             {
-
                 if (comp == World::GetId<Polygon>())
                 {
-                    int size = reinterpret_cast<int &>(packets[packetPos]);
+                    int size = reinterpret_cast<int &>(inBuffer[packetPos]);
                     packetPos += sizeof(int);
 
                     Polygon *pPolygon = scene.Get<Polygon>(ent);
@@ -585,7 +599,7 @@ void NetworkingClientSystem(World::Scene &scene)
                     pPolygon->verticies.resize(size);
 
                     for (int i = 0; i < size; i++)
-                        pPolygon->verticies[i] = reinterpret_cast<Vec2 *>(&packets[packetPos])[i];
+                        pPolygon->verticies[i] = reinterpret_cast<Vec2 *>(&inBuffer[packetPos])[i];
 
                     packetPos += size * sizeof(Vec2);
                     continue;
@@ -593,15 +607,25 @@ void NetworkingClientSystem(World::Scene &scene)
 
                 if (comp == World::GetId<Children>())
                 {
-                    int size = reinterpret_cast<int &>(packets[packetPos]);
+                    int size = reinterpret_cast<int &>(inBuffer[packetPos]);
                     packetPos += sizeof(int);
 
                     Children *pChildren = scene.Get<Children>(ent);
 
-                    pChildren->children.resize(size);
+                    std::vector<World::EntityID> clientEntities;
+                    for (World::EntityID child : pChildren->children)
+                    {
+                        if (World::IsClientEntity(child))
+                            clientEntities.push_back(child);
+                    }
+
+                    pChildren->children.resize(size + clientEntities.size());
 
                     for (int i = 0; i < size; i++)
-                        pChildren->children[i] = reinterpret_cast<World::EntityID *>(&packets[packetPos])[i];
+                        pChildren->children[i] = reinterpret_cast<World::EntityID *>(&inBuffer[packetPos])[i];
+
+                    for (int i = 0; i < clientEntities.size(); i++)
+                        pChildren->children[size + i] = clientEntities[i];
 
                     packetPos += size * sizeof(World::EntityID);
                     continue;
@@ -613,12 +637,12 @@ void NetworkingClientSystem(World::Scene &scene)
                 uint8_t *compData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
                 if (compData == nullptr) break;
 
-                for (int i = 0; i < compSize; i++) compData[i] = packets[packetPos - compSize + i];
+                for (int i = 0; i < compSize; i++) compData[i] = inBuffer[packetPos - compSize + i];
                 break;
             }
             case NetworkOp::destroy:
             {
-                std::cout << "HERE delete" << std::endl;
+                std::cout << "HERE delete " << comp << ", " << World::GetEntityIndex(ent) << std::endl;
                 if (comp == 0)
                 {
                     scene.DestroyEntity(ent);
@@ -632,29 +656,32 @@ void NetworkingClientSystem(World::Scene &scene)
         }
     }
 
-    packetsSize = 0;
-}
-
-void sendPackets(std::vector<uint8_t> &packets, int size)
-{
-    EM_ASM({
-        let user = new Uint32Array(Module.HEAPU8.buffer, $0, 8);
-
-        for (let client of Module.socket.clients)
+    if (newUser != INVALID_ENTITY)
+    {
+        if (user == INVALID_ENTITY)
         {
-            if (client.entityIndex == user[0] && client.entityVersion == user[1])
+            // Camera
             {
-                client.send(new Uint8Array(Module.HEAPU8.buffer, $0 + 8, $1 - 8));
+                World::EntityID camera = scene.NewEntity(true);
+
+                Transform *pTransform = Utils::assignTransform(scene, camera);
+                pTransform->scale = Vec2(30, 30);
+
+                scene.Assign<Camera>(camera);
+                std::cout << "created camera " << World::GetEntityIndex(camera) << std::endl;
             }
         }
-    },
-           packets.data(), size);
+        user = newUser;
+    }
+
+    inBuffer.clear();
+
+    sendBuffer(outBuffer);
+    outBuffer.clear();
 }
 
-void NetworkingServerSystem(World::Scene &scene)
+void ServerNetworkingSystem(World::Scene &scene)
 {
-    packetsSize = sizeof(World::EntityID);
-
     for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
     {
         for (World::EntityID ent : SceneView<>(scene))
@@ -662,57 +689,100 @@ void NetworkingServerSystem(World::Scene &scene)
             uint8_t *componentData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
             if (componentData == nullptr) continue;
 
-            reinterpret_cast<World::EntityID &>(packets[packetsSize]) = ent;
-            packetsSize += sizeof(World::EntityID);
-
-            reinterpret_cast<World::ComponentID &>(packets[packetsSize]) = comp | (NetworkOp::modify << 30);
-            packetsSize += sizeof(World::ComponentID);
+            bufferInsert<World::EntityID>(outBuffer, ent);
+            bufferInsert<World::ComponentID>(outBuffer, comp | (NetworkOp::modify << 30));
 
             if (comp == World::GetId<Polygon>())
             {
                 Polygon *pPolygon = scene.Get<Polygon>(ent);
-                reinterpret_cast<int &>(packets[packetsSize]) = pPolygon->verticies.size();
-                packetsSize += sizeof(int);
-
-                for (int i = 0; i < pPolygon->verticies.size(); i++)
-                    reinterpret_cast<Vec2 *>(&packets[packetsSize])[i] = pPolygon->verticies[i];
-
-                packetsSize += pPolygon->verticies.size() * sizeof(Vec2);
+                bufferInsert<int>(outBuffer, pPolygon->verticies.size());
+                for (int i = 0; i < pPolygon->verticies.size(); i++) bufferInsert<Vec2>(outBuffer, pPolygon->verticies[i]);
                 continue;
             }
 
             if (comp == World::GetId<Children>())
             {
                 Children *pChildren = scene.Get<Children>(ent);
-                reinterpret_cast<int &>(packets[packetsSize]) = pChildren->children.size();
-                packetsSize += sizeof(int);
-
-                for (int i = 0; i < pChildren->children.size(); i++)
-                    reinterpret_cast<World::EntityID *>(&packets[packetsSize])[i] = pChildren->children[i];
-
-                packetsSize += pChildren->children.size() * sizeof(World::EntityID);
+                bufferInsert<int>(outBuffer, pChildren->children.size());
+                for (int i = 0; i < pChildren->children.size(); i++) bufferInsert<World::EntityID>(outBuffer, pChildren->children[i]);
                 continue;
             }
 
-            int compSize = scene.GetComponentSize(comp);
-            for (int i = 0; i < compSize; i++) packets[packetsSize + i] = componentData[i];
-            packetsSize += compSize;
+            for (int i = 0; i < scene.GetComponentSize(comp); i++) outBuffer.push_back(componentData[i]);
         }
     }
 
     for (World::EntityID ent : SceneView<User>(scene))
     {
-        reinterpret_cast<World::EntityID &>(packets[0]) = ent;
-        sendPackets(packets, packetsSize);
+        reinterpret_cast<World::EntityID &>(outBuffer[0]) = ent;
+        sendBuffer(outBuffer);
     }
 
-    packetsSize = sizeof(World::EntityID);
+    outBuffer.clear();
+    bufferInsert<World::EntityID>(outBuffer, INVALID_ENTITY);
+
+    // if (inBuffer.size() > 0)
+    //     std::cout << inBuffer.size() << std::endl;
+
+    // // Handle client actions
+    // int packetPos = 0;
+    // while (packetPos < inBuffer.size())
+    // {
+    //     World::EntityID user = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
+    //     packetPos += sizeof(World::EntityID);
+
+    //     uint32_t size = reinterpret_cast<uint32_t &>(inBuffer[packetPos]);
+    //     packetPos += sizeof(uint32_t);
+
+    //     std::cout << "GOT DATA: " << user << " size " << size << std::endl;
+    //     while (size > 0)
+    //     {
+    //         size--;
+    //         switch ((Action)inBuffer[packetPos++])
+    //         {
+    //             case Action::forward:
+    //             {
+    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+    //                 if (pRigidbody == nullptr) break;
+    //                 pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+    //                 break;
+    //             }
+    //             case Action::backward:
+    //             {
+    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+    //                 if (pRigidbody == nullptr) break;
+    //                 pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+    //                 break;
+    //             }
+    //             case Action::left:
+    //             {
+    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+    //                 if (pRigidbody == nullptr) break;
+    //                 pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+    //                 break;
+    //             }
+    //             case Action::right:
+    //             {
+    //                 Rigidbody *pRigidbody = scene.Get<Rigidbody>(user);
+    //                 if (pRigidbody == nullptr) break;
+    //                 pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
+    //                 break;
+    //             }
+    //             default:
+    //             {
+    //                 // Ignore invalid messages
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+    inBuffer.clear();
 }
 
 void onMouseDown(int x, int y, int button)
 {
     if (button == 0)
-        key_state.set(Controls::fire);
+        key_state.set(Action::fire);
     mouse_pos.x = x;
     mouse_pos.y = y;
 }
@@ -726,7 +796,7 @@ void onMouseMove(int x, int y)
 void onMouseUp(int x, int y, int button)
 {
     if (button == 0)
-        key_state.reset(Controls::fire);
+        key_state.reset(Action::fire);
     mouse_pos.x = x;
     mouse_pos.y = y;
 }
@@ -743,8 +813,15 @@ void onKeyUp(int key)
 
 uint32_t onPacket(int size)
 {
-    packetsSize += size;
-    return reinterpret_cast<uint32_t>(&packets[packetsSize - size]);
+    inBuffer.resize(inBuffer.size() + size);
+    return reinterpret_cast<uint32_t>(&inBuffer[inBuffer.size() - size]);
+}
+
+void onDisconnect(uint32_t index, uint32_t version)
+{
+    World::EntityID user = World::CreateEntityId(index, version);
+    std::cout << "Disconnected, UserId: " << user << std::endl;
+    Utils::destroyEntity(scene, user);
 }
 
 uint32_t onConnect()
@@ -758,44 +835,31 @@ uint32_t onConnect()
 void stateSync(uint32_t buffer)
 {
     World::EntityID *user = reinterpret_cast<World::EntityID *>(buffer);
-    std::cout << "Started sync, UserId: " << *user << std::endl;
+    std::cout << "Started sync, UserId: " << *user << ", " << World::GetEntityIndex(*user) << std::endl;
 
-    int tempPacketsSize = 0;
-
-    reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = *user;
-    tempPacketsSize += sizeof(World::EntityID);
-
-    reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = *user;
-    tempPacketsSize += sizeof(World::EntityID);
-
-    reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = 0 | (NetworkOp::setUser << 30);
-    tempPacketsSize += sizeof(World::ComponentID);
+    tempBuffer.clear();
+    bufferInsert<World::EntityID>(tempBuffer, *user);
+    bufferInsert<World::EntityID>(tempBuffer, *user);
+    bufferInsert<World::ComponentID>(tempBuffer, 0 | (NetworkOp::setUser << 30));
 
     for (World::EntityID ent : SceneView<>(scene))
     {
-        reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = ent;
-        tempPacketsSize += sizeof(World::EntityID);
-
-        reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = 0 | (NetworkOp::create << 30);
-        tempPacketsSize += sizeof(World::ComponentID);
+        bufferInsert<World::EntityID>(tempBuffer, ent);
+        bufferInsert<World::ComponentID>(tempBuffer, 0 | (NetworkOp::create << 30));
     }
 
     for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
     {
         for (World::EntityID ent : SceneView<>(scene))
         {
-            uint8_t *componentData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
-            if (componentData == nullptr) continue;
+            if (scene.Get(ent, comp) == nullptr) continue;
 
-            reinterpret_cast<World::EntityID &>(tempPackets[tempPacketsSize]) = ent;
-            tempPacketsSize += sizeof(World::EntityID);
-
-            reinterpret_cast<World::ComponentID &>(tempPackets[tempPacketsSize]) = comp | (NetworkOp::create << 30);
-            tempPacketsSize += sizeof(World::ComponentID);
+            bufferInsert<World::EntityID>(tempBuffer, ent);
+            bufferInsert<World::ComponentID>(tempBuffer, comp | (NetworkOp::create << 30));
         }
     }
 
-    sendPackets(tempPackets, tempPacketsSize);
+    sendBuffer(tempBuffer);
     delete user;
 }
 
@@ -832,7 +896,7 @@ void update(double dt)
     DeathAnimatorSystem(scene, dt);
     HealthSystem(scene);
     EventSystem(scene);
-    NetworkingServerSystem(scene);
+    ServerNetworkingSystem(scene);
 
     // for (World::EntityID ent : SceneView<ObjectToWorld, Transform>(scene))
     // {
@@ -850,11 +914,11 @@ void update(double dt)
     //     std::cout << std::endl;
     // }
 
-    // for (World::EntityID ent : SceneView<User, Transform>(scene))
+    // for (World::EntityID ent : SceneView<User, Rigidbody>(scene))
     // {
     //     // Children *pChildren = scene.Get<Children>(ent);
     //     // pChildren->children[0]
-    //     Transform *pTransform = scene.Get<Transform>(ent);
+    //     Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
 
     //     // Do stuff
     //     // pHealth->health = std::max(0, pHealth->health - 1);
@@ -864,17 +928,21 @@ void update(double dt)
     //     //     std::cout << pTransform->matrix.array[i] << ", ";
     //     // }
     //     // std::cout << dt << ", " << std::endl;
-    //     pTransform->pos.x += dt * 1;
+    //     pRigidbody->velocity.x = 10;
     // }
 
 #endif
 
 #ifndef SERVER
-    // CameraFollowSystem(scene);
-    // PlayerMovementSystem(scene);
+    CameraFollowSystem(scene);
+
     WorldToViewSystem(scene);
-    RenderSystem(scene);
-    NetworkingClientSystem(scene);
+    if (user != INVALID_ENTITY)
+    {
+        RenderSystem(scene);
+        PlayerMovementSystem(scene);
+    }
+    ClientNetworkingSystem(scene);
 #endif
 
     // for (World::EntityID ent : SceneView<Camera, Transform>(scene))
@@ -953,31 +1021,51 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef SERVER
+    bufferInsert<World::EntityID>(outBuffer, INVALID_ENTITY);
     EM_ASM({
         const Server = require('ws').Server;
         const process = require('process');
-        let wss = new Server({port : $0});
-        wss.binaryType = 'arraybuffer';
+        Module.socket = new Server({port : $0});
+        Module.socket.binaryType = 'arraybuffer';
 
-        wss.on(
-            'close', function() {
-                console.log('disconnected');
-            });
-
-        wss.on(
+        Module.socket.on(
             'listening', function() {
-                console.log('Start on port ' + $0);
+                console.log('Started on port ' + $0);
             });
 
-        Module.socket = wss;
+        function heartbeat()
+        {
+            this.isAlive = true;
+        }
 
-        wss.on(
+        function noop() {}
+
+        Module.socket.on(
             'connection', function(ws) {
+                ws.isAlive = true;
+                ws.on('pong', heartbeat);
+                ws.on(
+                    'close', function() { Module.onDisconnect(ws.entityIndex, ws.entityVersion); });
+
+                ws.on(
+                    'message', function(event) {
+                        let array = new Uint8Array(event);
+                        let buffer = Module.onPacket(array.length + 12);
+                        new DataView(Module.HEAPU8.buffer).setUint32(buffer, ws.entityVersion);
+                        new DataView(Module.HEAPU8.buffer).setUint32(buffer + 4, ws.entityIndex);
+                        new DataView(Module.HEAPU8.buffer).setUint32(buffer + 8, array.length);
+                        // let memory =
+                        // memory[0] = ws.entityVersion;
+                        // memory[1] = ws.entityIndex;
+                        // memory[2] = array.length;
+                        new Uint8Array(Module.HEAPU8.buffer).set(array, buffer + 12);
+                    });
+
                 let user = Module.onConnect();
                 let entity = new Uint32Array(Module.HEAPU8.buffer, user, 8);
 
-                ws.entityIndex = entity[0];
-                ws.entityVersion = entity[1];
+                ws.entityVersion = entity[0];
+                ws.entityIndex = entity[1];
 
                 Module.stateSync(user);
             });
@@ -997,11 +1085,26 @@ int main(int argc, char *argv[])
             let dt = Math.min((timestamp - lastTime) / 1000, 1 / 60);
             lastTime = timestamp;
             Module.update(dt);
-            // request = setTimeout(update, (1 / 60) * 1000);
             request = setTimeout(update, (1 / 60) * 1000);
         }
 
         request = setTimeout(update, 0);
+
+        const interval = setInterval(
+            function ping() {
+                for (let ws of Module.socket.clients)
+                {
+                    if (!ws.isAlive)
+                    {
+                        Module.onDisconnect(ws.entityIndex, ws.entityVersion);
+                        return ws.terminate();
+                    }
+
+                    ws.isAlive = false;
+                    ws.ping(noop);
+                }
+            },
+            5000);
     },
            PORT);
     World::EntityID root = scene.NewEntity();
@@ -1011,16 +1114,6 @@ int main(int argc, char *argv[])
     scene.Assign<ObjectToWorld>(World::ROOT_ENTITY);
     scene.Assign<Children>(World::ROOT_ENTITY);
     Game::loadScene(scene);
-
-    // Camera
-    {
-        World::EntityID camera = scene.NewEntity();
-
-        Transform *pTransform = Utils::assignTransform(scene, camera);
-        pTransform->scale = Vec2(30, 30);
-
-        scene.Assign<Camera>(camera);
-    }
 #endif
     return 0;
 }
@@ -1040,4 +1133,5 @@ EMSCRIPTEN_BINDINGS(my_module)
     function("onPacket", &onPacket);
     function("onConnect", &onConnect);
     function("stateSync", &stateSync);
+    function("onDisconnect", &onDisconnect);
 }

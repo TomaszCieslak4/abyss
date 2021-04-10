@@ -8,8 +8,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const pg_1 = require("pg");
+const websocketServer = require("../game/server/index.js");
 const port = 8000;
 let app = express_1.default();
+var cors = require('cors');
+app.use(cors());
 const pool = new pg_1.Pool({
     user: 'webdbuser',
     host: 'localhost',
@@ -25,33 +28,11 @@ app.post('/api/test', function (req, res) {
     res.json({ "message": "got here" });
 });
 app.get('/api/topten', async (req, res) => {
-    if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No table speicifc sent!' });
     let returnRes = { "message": "", "topten": {} };
     try {
-        let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
-        let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
-        m = /^(.*)$/.exec(user_pass); // probably should do better than this
-        let table = m ? m[1] : "";
-        console.log("table", table);
-        if (table === "") {
-            return res.status(401).json({ error: 'Please select valid table.' });
-        }
-        if (table === "easy") {
-            let query = 'SELECT username, score FROM easyScore ORDER BY score DESC LIMIT 10;';
-            let result = await pool.query(query, []);
-            returnRes["topten"] = result;
-        }
-        else if (table === "medium") {
-            let query = 'SELECT username, score FROM mediumScore ORDER BY score DESC LIMIT 10;';
-            let result = await pool.query(query, []);
-            returnRes["topten"] = result;
-        }
-        else if (table === "hard") {
-            let query = 'SELECT username, score FROM hardScore ORDER BY score DESC LIMIT 10;';
-            let result = await pool.query(query, []);
-            returnRes["topten"] = result;
-        }
+        let query = 'SELECT username, highScore FROM scores ORDER BY highScore DESC LIMIT 10;';
+        let result = await pool.query(query, []);
+        returnRes["topten"] = result;
     }
     catch (err) {
         res.status(500).json({ error: 'Server error occured' });
@@ -61,7 +42,7 @@ app.get('/api/topten', async (req, res) => {
 });
 app.use('/api/user', async (req, res, next) => {
     if (!req.headers.authorization) {
-        return res.status(403).json({ error: 'No username sent!' });
+        return res.status(401).json({ error: 'No username sent!' });
     }
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
@@ -105,7 +86,7 @@ app.use('/api/nouser', async (req, res, next) => {
                 next();
             }
             else {
-                res.status(401).json({ error: 'Username already exists.' });
+                res.status(404).json({ error: 'Username already exists.' });
             }
         });
     }
@@ -113,27 +94,19 @@ app.use('/api/nouser', async (req, res, next) => {
         res.status(500).json({ error: 'Server error occured' });
     }
 });
-app.get('/api/user/userinfo', async (req, res) => {
+app.get('/api/user/userscores', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
-    let returnRes = { "message": "", "difficulty": "", "easyScore": "", "mediumScore": "", "hardScore": "" };
+        return res.status(401).json({ error: 'No credentials sent!' });
+    let returnRes = { "message": "", "lastScore": "", "highScore": "" };
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
         m = /^(.*)$/.exec(user_pass);
         let username = m ? m[1] : "";
-        let query = 'SELECT difficulty FROM ftduser WHERE username=$1';
+        let query = 'SELECT lastScore, highScore FROM scores WHERE username=$1';
         let result = await pool.query(query, [username]);
-        returnRes["difficulty"] = result.rows[0]["difficulty"];
-        query = 'SELECT score FROM easyScore WHERE username=$1';
-        result = await pool.query(query, [username]);
-        returnRes["easyScore"] = result.rows[0]["score"];
-        query = 'SELECT score FROM mediumScore WHERE username=$1';
-        result = await pool.query(query, [username]);
-        returnRes["mediumScore"] = result.rows[0]["score"];
-        query = 'SELECT score FROM hardScore WHERE username=$1';
-        result = await pool.query(query, [username]);
-        returnRes["hardScore"] = result.rows[0]["score"];
+        returnRes["lastScore"] = result.rows[0]["lastscore"];
+        returnRes["highScore"] = result.rows[0]["highscore"];
     }
     catch (err) {
         res.status(500).json({ error: 'Server error occured' });
@@ -143,7 +116,7 @@ app.get('/api/user/userinfo', async (req, res) => {
 });
 app.post('/api/nouser/register', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
@@ -158,18 +131,13 @@ app.post('/api/nouser/register', async (req, res) => {
             return res.status(401).json({ error: 'Username should be between 3-20 characters or numbers.' });
         }
         if (difficulty === "") {
-            return res.status(401).json({ error: 'Please select preferred difficulty.' });
+            return res.status(401).json({ error: 'Please select current skill level.' });
         }
         else {
             let query = 'INSERT INTO ftduser (username, password, difficulty) VALUES ($1, sha512($2), $3)';
             let result = await pool.query(query, [username, password, difficulty]);
-            let zero = 0;
-            query = 'INSERT INTO easyScore (username, score) VALUES ($1, $2)';
-            result = await pool.query(query, [username, zero]);
-            query = 'INSERT INTO mediumScore (username, score) VALUES ($1, $2)';
-            result = await pool.query(query, [username, zero]);
-            query = 'INSERT INTO hardScore (username, score) VALUES ($1, $2)';
-            result = await pool.query(query, [username, zero]);
+            query = 'INSERT INTO scores (username, lastScore, highScore) VALUES ($1, 0, 0)';
+            result = await pool.query(query, [username]);
         }
     }
     catch (err) {
@@ -187,7 +155,7 @@ app.post('/api/nouser/register', async (req, res) => {
 **/
 app.use('/api/auth', async (req, res, next) => {
     if (!req.headers.authorization) {
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     }
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
@@ -205,7 +173,7 @@ app.use('/api/auth', async (req, res, next) => {
                 next();
             }
             else {
-                res.status(401).json({ error: 'Incorrect credentials.' });
+                res.status(404).json({ error: 'Incorrect credentials.' });
             }
         });
     }
@@ -220,7 +188,7 @@ app.post('/api/auth/login', function (req, res) {
 });
 app.put('/api/auth/updatepassword', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
@@ -242,33 +210,28 @@ app.put('/api/auth/updatepassword', async (req, res) => {
 });
 app.put('/api/auth/updatescore', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
         m = /^(.*):(.*):(.*):(.*)$/.exec(user_pass);
         let username = m ? m[1] : "";
-        let table = m ? m[3] : "";
-        let score = m ? m[4] : "";
-        console.log(username, " ", table, " ", score);
-        let addnum = Number(score);
-        if (addnum === NaN || addnum < 0) {
-            return res.status(401).json({ error: 'Score is invalid.' });
+        let score = m ? m[3] : "";
+        console.log(username, " ", score);
+        let newScore = Number(score);
+        if (newScore === NaN || newScore < 0) {
+            return res.status(404).json({ error: 'Score is invalid.' });
         }
-        if (table === "") {
-            return res.status(401).json({ error: 'Please select valid table.' });
+        let query = 'SELECT highScore FROM scores WHERE username=$1;';
+        let result = await pool.query(query, [username]);
+        let highScore = Number(result.rows[0]["highScore"]);
+        if (highScore < newScore) {
+            let query = 'UPDATE scores SET highScore=$1, lastScore=$2 WHERE username=$3;';
+            let result = await pool.query(query, [newScore, newScore, username]);
         }
-        if (table === "easy") {
-            let query = 'UPDATE easyScore SET score=$2 WHERE username=$1;';
-            let result = await pool.query(query, [username, addnum]);
-        }
-        else if (table === "medium") {
-            let query = 'UPDATE mediumScore SET score=$2 WHERE username=$1;';
-            let result = await pool.query(query, [username, addnum]);
-        }
-        else if (table === "hard") {
-            let query = 'UPDATE hardScore SET score=$2 WHERE username=$1;;';
-            let result = await pool.query(query, [username, addnum]);
+        else {
+            let query = 'UPDATE scores SET lastScore=$1 WHERE username=$2;';
+            let result = await pool.query(query, [newScore, username]);
         }
     }
     catch (err) {
@@ -276,44 +239,16 @@ app.put('/api/auth/updatescore', async (req, res) => {
     }
     res.status(200).json({ "message": "Update score complete" });
 });
-app.put('/api/auth/updatedifficulty', async (req, res) => {
-    if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
-    try {
-        let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
-        let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
-        m = /^(.*):(.*):(.*)$/.exec(user_pass);
-        let username = m ? m[1] : "";
-        let difficulty = m ? m[3] : "";
-        if (difficulty === "") {
-            return res.status(401).json({ error: 'Please select preferred difficulty.' });
-        }
-        else {
-            let query = 'UPDATE ftduser SET difficulty=$2 WHERE username=$1';
-            let result = await pool.query(query, [username, difficulty]);
-        }
-    }
-    catch (err) {
-        return res.status(500).json({ error: 'Server error' });
-    }
-    res.status(200).json({ "message": "Update difficulty complete" });
-});
 app.delete('/api/auth/delete', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
         m = /^(.*):(.*)$/.exec(user_pass);
         let username = m ? m[1] : "";
-        let query = 'DELETE FROM hardScore WHERE username=$1';
+        let query = 'DELETE FROM ftduser WHERE username=$1';
         let result = await pool.query(query, [username]);
-        query = 'DELETE FROM mediumScore WHERE username=$1';
-        result = await pool.query(query, [username]);
-        query = 'DELETE FROM easyScore WHERE username=$1';
-        result = await pool.query(query, [username]);
-        query = 'DELETE FROM ftduser WHERE username=$1';
-        result = await pool.query(query, [username]);
     }
     catch (err) {
         return res.status(500).json({ error: 'Server error' });
@@ -324,7 +259,7 @@ app.post('/api/auth/test', function (req, res) {
     res.status(200);
     res.json({ "message": "got to /api/auth/test" });
 });
-app.use('/', express_1.default.static('../docs'));
-app.listen(port, "localhost", function () {
+app.use('/', express_1.default.static('../abyss/build'));
+app.listen(port, function () {
     console.log('Example app listening on port ' + port);
 });

@@ -6,12 +6,16 @@
 template <typename... ComponentTypes>
 struct SceneView
 {
-    World::Scene *pScene{nullptr};
+    World::Scene *pScene = nullptr;
     World::ComponentMask componentMask;
-    bool all{false};
+    bool all = false;
+    std::vector<World::Scene::EntityDesc> *entities = nullptr;
 
-    SceneView(World::Scene &scene) : pScene(&scene)
+    SceneView(World::Scene &scene, bool clientSide = false)
     {
+        this->pScene = &scene;
+        this->entities = clientSide ? &scene.clientEntities : &scene.networkedEntities;
+
         if (sizeof...(ComponentTypes) == 0)
         {
             all = true;
@@ -27,31 +31,37 @@ struct SceneView
 
     struct Iterator
     {
-        Iterator(World::Scene *pScene, World::EntityIndex index, World::ComponentMask mask, bool all)
-            : pScene(pScene), index(index), mask(mask), all(all) {}
+        Iterator(World::Scene *pScene, World::EntityIndex index, World::ComponentMask mask, bool all, std::vector<World::Scene::EntityDesc> *entities)
+        {
+            this->pScene = pScene;
+            this->index = index;
+            this->mask = mask;
+            this->all = all;
+            this->entities = entities;
+        }
 
         World::EntityID operator*() const
         {
-            return pScene->entities[index].id;
+            return (*entities)[index].id;
         }
 
         bool operator==(const Iterator &other) const
         {
-            return index == other.index || index == pScene->entities.size();
+            return index == other.index || index == (*entities).size();
         }
 
         bool operator!=(const Iterator &other) const
         {
-            return index != other.index && index != pScene->entities.size();
+            return index != other.index && index != (*entities).size();
         }
 
         bool ValidIndex()
         {
             return
                 // It's a valid entity ID
-                World::IsEntityValid(pScene->entities[index].id) &&
+                World::IsEntityIdValid((*entities)[index].id) &&
                 // It has the correct component mask
-                (all || mask == (mask & pScene->entities[index].mask));
+                (all || mask == (mask & (*entities)[index].mask));
         }
 
         Iterator &operator++()
@@ -59,30 +69,31 @@ struct SceneView
             do
             {
                 index++;
-            } while (index < pScene->entities.size() && !ValidIndex());
+            } while (index < (*entities).size() && !ValidIndex());
             return *this;
         }
 
         World::EntityIndex index;
         World::Scene *pScene;
         World::ComponentMask mask;
-        bool all{false};
+        bool all = false;
+        std::vector<World::Scene::EntityDesc> *entities;
     };
 
     const Iterator begin() const
     {
         int firstIndex = 0;
-        while (firstIndex < pScene->entities.size() &&
-               (componentMask != (componentMask & pScene->entities[firstIndex].mask) || !World::IsEntityValid(pScene->entities[firstIndex].id)))
+        while (firstIndex < (*entities).size() &&
+               (componentMask != (componentMask & (*entities)[firstIndex].mask) || !World::IsEntityIdValid((*entities)[firstIndex].id)))
         {
             firstIndex++;
         }
-        return Iterator(pScene, firstIndex, componentMask, all);
+        return Iterator(pScene, firstIndex, componentMask, all, entities);
     }
 
     const Iterator end() const
     {
-        return Iterator(pScene, World::EntityIndex(pScene->entities.size()), componentMask, all);
+        return Iterator(pScene, World::EntityIndex((*entities).size()), componentMask, all, entities);
     }
 };
 
