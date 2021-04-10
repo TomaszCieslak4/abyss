@@ -196,7 +196,12 @@ class Registration extends Component<MyProp, MyState> {
               />
             }
           />
-          <Button type="submit" variant="contained" onClick={this.register}>
+          <Button
+            type="submit"
+            variant="contained"
+            onClick={this.register}
+            color="primary"
+          >
             Register Account
           </Button>
           <Button

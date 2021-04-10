@@ -44,7 +44,7 @@ app.get('/api/topten', async (req, res) => {
 
 app.use('/api/user', async (req, res, next) => {
     if (!req.headers.authorization) {
-        return res.status(403).json({ error: 'No username sent!' });
+        return res.status(401).json({ error: 'No username sent!' });
     }
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
@@ -89,7 +89,7 @@ app.use('/api/nouser', async (req, res, next) => {
                 next();
             }
             else {
-                res.status(401).json({ error: 'Username already exists.' });
+                res.status(404).json({ error: 'Username already exists.' });
             }
         });
     }
@@ -100,7 +100,7 @@ app.use('/api/nouser', async (req, res, next) => {
 
 app.get('/api/user/userscores', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     let returnRes = { "message": "", "lastScore": "", "highScore": ""};
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
@@ -121,7 +121,7 @@ app.get('/api/user/userscores', async (req, res) => {
 
 app.post('/api/nouser/register', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
@@ -162,7 +162,7 @@ app.post('/api/nouser/register', async (req, res) => {
 **/
 app.use('/api/auth', async (req, res, next) => {
     if (!req.headers.authorization) {
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     }
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
@@ -180,7 +180,7 @@ app.use('/api/auth', async (req, res, next) => {
                 next();
             }
             else {
-                res.status(401).json({ error: 'Incorrect credentials.' });
+                res.status(404).json({ error: 'Incorrect credentials.' });
             }
         });
     }
@@ -197,7 +197,7 @@ app.post('/api/auth/login', function (req, res) {
 
 app.put('/api/auth/updatepassword', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
@@ -220,7 +220,7 @@ app.put('/api/auth/updatepassword', async (req, res) => {
 
 app.put('/api/auth/updatescore', async (req, res) => {
     if (!req.headers.authorization)
-        return res.status(403).json({ error: 'No credentials sent!' });
+        return res.status(401).json({ error: 'No credentials sent!' });
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
@@ -230,7 +230,7 @@ app.put('/api/auth/updatescore', async (req, res) => {
         console.log(username, " ", score);
         let newScore = Number(score);
         if (newScore === NaN || newScore < 0) {
-            return res.status(401).json({ error: 'Score is invalid.' });
+            return res.status(404).json({ error: 'Score is invalid.' });
         }
 
         let query = 'SELECT highScore FROM scores WHERE username=$1;';
@@ -253,7 +253,7 @@ app.put('/api/auth/updatescore', async (req, res) => {
 });
 
 app.delete('/api/auth/delete', async (req, res) => {
-	if (!req.headers.authorization) return res.status(403).json({ error: 'No credentials sent!' });
+	if (!req.headers.authorization) return res.status(401).json({ error: 'No credentials sent!' });
 
 	try {
 		let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);

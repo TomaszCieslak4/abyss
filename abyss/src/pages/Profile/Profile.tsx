@@ -10,6 +10,7 @@ import {
 } from "@material-ui/core";
 import React, { Component } from "react";
 import { RouteComponentProps } from "react-router-dom";
+import "../../App.css";
 import { SERVERIP } from "../../config";
 
 interface MyState {
@@ -67,7 +68,7 @@ class Profile extends Component<MyProp, MyState> {
       errors.push("Please accept the changes.");
     }
     if (this.state.currentPassword.length === 0) {
-      errors.push("Enter password to update account.");
+      errors.push("Enter password to change account details.");
     }
     if (
       this.state.newPassword.length > 0 &&
@@ -179,7 +180,7 @@ class Profile extends Component<MyProp, MyState> {
             <TextField
               name="currentPassword"
               onChange={this.handleChange}
-              label="Existing Password"
+              label="Existing Password (required)"
               type="password"
               autoComplete="current-password"
               variant="filled"
@@ -202,6 +203,7 @@ class Profile extends Component<MyProp, MyState> {
             variant="contained"
             type="submit"
             onClick={this.updateAccount}
+            color="primary"
           >
             Update Account
           </Button>

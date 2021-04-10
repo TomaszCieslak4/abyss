@@ -2,7 +2,6 @@ import { Button, TextField } from "@material-ui/core";
 import React, { Component } from "react";
 import { RouteComponentProps } from "react-router-dom";
 import "../../App.css";
-import "./Login.css";
 import { SERVERIP } from "../../config";
 
 interface MyState {

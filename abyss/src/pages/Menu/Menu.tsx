@@ -118,7 +118,9 @@ class Menu extends Component<MyProp, MyState> {
             </tbody>
           </table>
           <h2>Menu</h2>
-          <Button variant="contained">Start New Game</Button>
+          <Button variant="contained" color="primary">
+            Start New Game
+          </Button>
           <Button
             variant="contained"
             onClick={() => this.props.history.push("/Profile")}
