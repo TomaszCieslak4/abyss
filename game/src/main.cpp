@@ -33,7 +33,7 @@ enum Action
     MAX = fire
 };
 
-Scene scene;
+World scene;
 double elapsedTime;
 std::bitset<Action::MAX + 1> key_state;
 std::bitset<Action::MAX + 1> last_key_state;
@@ -50,7 +50,7 @@ std::vector<uint8_t> outBuffer;
 
 EntityID clientUser = INVALID_ENTITY;
 
-void calculateMatrix(Scene &scene, EntityID ent)
+void calculateMatrix(World &scene, EntityID ent)
 {
     component::Transform *pTransform = scene.Get<component::Transform>(ent);
     component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(ent);
@@ -155,7 +155,7 @@ void pickupDrop(EntityID user, EntityID drop)
     }
 }
 
-void ObjectToWorldSystem(Scene &scene)
+void ObjectToWorldSystem(World &scene)
 {
     component::Children *pChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
@@ -165,7 +165,7 @@ void ObjectToWorldSystem(Scene &scene)
     }
 }
 
-void WorldToViewSystem(Scene &scene)
+void WorldToViewSystem(World &scene)
 {
     Mat3 identity = Mat3::identity();
 
@@ -182,7 +182,7 @@ void WorldToViewSystem(Scene &scene)
     }
 }
 
-void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
+void renderEntity(World &scene, EntityID ent, Mat3 &view_matrix)
 {
     component::Color *pColor = scene.Get<component::Color>(ent);
     component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(ent);
@@ -263,7 +263,7 @@ void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
     }
 }
 
-void RenderSystem(Scene &scene)
+void RenderSystem(World &scene)
 {
     component::Children *pChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
@@ -278,7 +278,7 @@ void RenderSystem(Scene &scene)
     }
 }
 
-void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID topEnt, EntityID otherTopEnt)
+void checkCollisionHelper(World &scene, EntityID ent, EntityID other, EntityID topEnt, EntityID otherTopEnt)
 {
     if (scene.Get<component::Collider>(ent) != nullptr)
     {
@@ -303,7 +303,7 @@ void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID t
     }
 }
 
-void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
+void checkCollision(World &scene, EntityID ent, EntityID topEnt)
 {
     component::Children *pRootChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
@@ -324,7 +324,7 @@ void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
     }
 }
 
-void RigidbodySystem(Scene &scene, double dt)
+void RigidbodySystem(World &scene, double dt)
 {
     for (EntityID ent : SceneView<component::Rigidbody, component::Transform>(scene))
     {
@@ -337,7 +337,7 @@ void RigidbodySystem(Scene &scene, double dt)
     }
 }
 
-void CollisionSystem(Scene &scene)
+void CollisionSystem(World &scene)
 {
     // Generate Collisions
     for (EntityID ent : SceneView<component::ObjectToWorld, component::Rigidbody, component::Transform>(scene))
@@ -354,7 +354,7 @@ void CollisionSystem(Scene &scene)
     }
 }
 
-void EventSystem(Scene &scene)
+void EventSystem(World &scene)
 {
     for (EntityID ent : SceneView<component::Event>(scene, true))
     {
@@ -362,7 +362,7 @@ void EventSystem(Scene &scene)
     }
 }
 
-void GroundDropSystem(Scene &scene, double elapsedTime)
+void GroundDropSystem(World &scene, double elapsedTime)
 {
     for (EntityID ent : SceneView<component::GroundDrop>(scene))
     {
@@ -377,7 +377,7 @@ void GroundDropSystem(Scene &scene, double elapsedTime)
     }
 }
 
-void PlayerActionsSystem(Scene &scene)
+void PlayerActionsSystem(World &scene)
 {
     if (key_state.test(Action::forward) && !last_key_state.test(Action::forward))
     {
@@ -437,7 +437,7 @@ void PlayerActionsSystem(Scene &scene)
     }
 }
 
-void DeathAnimatorSystem(Scene &scene, double dt)
+void DeathAnimatorSystem(World &scene, double dt)
 {
     for (EntityID ent : SceneView<component::DeathAnimator>(scene))
     {
@@ -459,7 +459,7 @@ void DeathAnimatorSystem(Scene &scene, double dt)
     }
 }
 
-void HealthSystem(Scene &scene, double dt)
+void HealthSystem(World &scene, double dt)
 {
     for (EntityID ent : SceneView<component::Health>(scene))
     {
@@ -491,7 +491,7 @@ void HealthSystem(Scene &scene, double dt)
     }
 }
 
-void CameraFollowSystem(Scene &scene)
+void CameraFollowSystem(World &scene)
 {
     const double MOVEMENT_SPEED = 10;
     for (EntityID cam : SceneView<component::Camera, component::Transform>(scene, true))
@@ -504,7 +504,7 @@ void CameraFollowSystem(Scene &scene)
     }
 }
 
-void DespawnSystem(Scene &scene, double dt)
+void DespawnSystem(World &scene, double dt)
 {
     for (EntityID ent : SceneView<component::GroundDrop, component::Despawn>(scene))
     {
@@ -519,7 +519,7 @@ void DespawnSystem(Scene &scene, double dt)
     }
 }
 
-void BulletSystem(Scene &scene, double dt)
+void BulletSystem(World &scene, double dt)
 {
     for (EntityID ent : SceneView<component::Event, component::Collision>(scene, true))
     {
@@ -644,7 +644,7 @@ void BulletSystem(Scene &scene, double dt)
 #endif
 }
 
-void ClientNetworkingSystem(Scene &scene)
+void ClientNetworkingSystem(World &scene)
 {
     int packetPos = 0;
 
@@ -835,7 +835,7 @@ void InsertComponentData(std::vector<uint8_t> &buffer, EntityID ent, ComponentID
     for (int i = 0; i < scene.GetComponentSize(comp); i++) buffer.push_back(componentData[i]);
 }
 
-void ServerNetworkingSystem(Scene &scene)
+void ServerNetworkingSystem(World &scene)
 {
     for (ComponentID comp = 1; comp < component::MAX_COMPONENT + 1; comp++)
     {
@@ -1184,7 +1184,7 @@ void start()
     if (!stopped) stop();
 
     // Reset
-    scene = Scene();
+    scene = World();
     elapsedTime = 0;
     key_state = {0};
     last_key_state = {0};

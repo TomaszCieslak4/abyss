@@ -184,7 +184,7 @@ enum Shape
 
 constexpr int MAX_COMPONENT = WeaponReload::id;
 
-void assignComponent(Scene &scene, EntityID ent, ComponentID comp)
+void assignComponent(World &scene, EntityID ent, ComponentID comp)
 {
     if (comp == GetId<Transform>())
         scene.Assign<Transform>(ent);

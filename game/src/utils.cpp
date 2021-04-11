@@ -10,7 +10,7 @@
 
 namespace Utils
 {
-void setSiblingIndex(Scene &scene, EntityID ent, int index)
+void setSiblingIndex(World &scene, EntityID ent, int index)
 {
     component::Parent *pParent = scene.Get<component::Parent>(ent);
     if (pParent == nullptr) return;
@@ -26,7 +26,7 @@ void setSiblingIndex(Scene &scene, EntityID ent, int index)
     pChildren->children.insert(pChildren->children.begin() + index, ent);
 }
 
-void setParent(Scene &scene, EntityID ent, EntityID par)
+void setParent(World &scene, EntityID ent, EntityID par)
 {
     component::Parent *pParent = scene.DirtyGet<component::Parent>(ent);
     if (pParent != nullptr)
@@ -50,7 +50,7 @@ void setParent(Scene &scene, EntityID ent, EntityID par)
     pChildren->children.push_back(ent);
 }
 
-void destroyEntity(Scene &scene, EntityID ent)
+void destroyEntity(World &scene, EntityID ent)
 {
     component::Parent *pParent = scene.Get<component::Parent>(ent);
     if (pParent != nullptr)
@@ -72,7 +72,7 @@ void destroyEntity(Scene &scene, EntityID ent)
     scene.DestroyEntity(ent);
 }
 
-component::Polygon *assignShape(Scene &scene, EntityID ent, component::Shape shape, bool addRenderer = true)
+component::Polygon *assignShape(World &scene, EntityID ent, component::Shape shape, bool addRenderer = true)
 {
     component::Polygon *pMesh = scene.DirtyAssign<component::Polygon>(ent);
     if (addRenderer) scene.Assign<component::Renderer>(ent);
@@ -94,7 +94,7 @@ component::Polygon *assignShape(Scene &scene, EntityID ent, component::Shape sha
     return pMesh;
 }
 
-component::Transform *assignTransform(Scene &scene, EntityID ent, EntityID parent = ROOT_ENTITY)
+component::Transform *assignTransform(World &scene, EntityID ent, EntityID parent = ROOT_ENTITY)
 {
     component::Transform *pTransform = scene.DirtyAssign<component::Transform>(ent);
     scene.Assign<component::ObjectToWorld>(ent);

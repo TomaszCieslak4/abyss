@@ -51,7 +51,7 @@ struct ComponentData
     size_t elementSize{0};
 };
 
-struct Scene
+struct World
 {
     struct EntityInfo
     {

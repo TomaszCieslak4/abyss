@@ -6,12 +6,12 @@
 template <typename... ComponentTypes>
 struct SceneView
 {
-    Scene *pScene = nullptr;
+    World *pScene = nullptr;
     ComponentMask componentMask;
     bool all = false;
-    std::vector<Scene::EntityInfo> *entities = nullptr;
+    std::vector<World::EntityInfo> *entities = nullptr;
 
-    SceneView(Scene &scene, bool clientSide = false)
+    SceneView(World &scene, bool clientSide = false)
     {
         this->pScene = &scene;
         this->entities = clientSide ? &scene.clientEntities : &scene.networkedEntities;
@@ -31,7 +31,7 @@ struct SceneView
 
     struct Iterator
     {
-        Iterator(Scene *pScene, EntityIndex index, ComponentMask mask, bool all, std::vector<Scene::EntityInfo> *entities)
+        Iterator(World *pScene, EntityIndex index, ComponentMask mask, bool all, std::vector<World::EntityInfo> *entities)
         {
             this->pScene = pScene;
             this->index = index;
@@ -74,10 +74,10 @@ struct SceneView
         }
 
         EntityIndex index;
-        Scene *pScene;
+        World *pScene;
         ComponentMask mask;
         bool all = false;
-        std::vector<Scene::EntityInfo> *entities;
+        std::vector<World::EntityInfo> *entities;
     };
 
     const Iterator begin() const

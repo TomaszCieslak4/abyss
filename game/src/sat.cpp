@@ -40,7 +40,7 @@ Vec2 circle_axis(Vec2 pos, std::vector<Vec2> &verticies)
     return closest / sqrt(closest_dist);
 }
 
-bool sat(Scene &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
+bool sat(World &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
 {
     component::ObjectToWorld *pObjectToWorld1 = scene.Get<component::ObjectToWorld>(ent1);
     component::ObjectToWorld *pObjectToWorld2 = scene.Get<component::ObjectToWorld>(ent2);

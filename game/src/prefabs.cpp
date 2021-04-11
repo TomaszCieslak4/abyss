@@ -9,7 +9,7 @@
 
 namespace prefab
 {
-EntityID Rectangle(Scene &scene, Vec2 pos, Vec2 scale, double rotation, EntityID parent, component::Color color, bool addCollider = false)
+EntityID Rectangle(World &scene, Vec2 pos, Vec2 scale, double rotation, EntityID parent, component::Color color, bool addCollider = false)
 {
     EntityID rectangle = scene.NewEntity();
 
@@ -28,7 +28,7 @@ EntityID Rectangle(Scene &scene, Vec2 pos, Vec2 scale, double rotation, EntityID
     return rectangle;
 }
 
-EntityID Smg(Scene &scene, EntityID parent)
+EntityID Smg(World &scene, EntityID parent)
 {
     EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
@@ -44,7 +44,7 @@ EntityID Smg(Scene &scene, EntityID parent)
     return gun;
 }
 
-EntityID AssultRifle(Scene &scene, EntityID parent)
+EntityID AssultRifle(World &scene, EntityID parent)
 {
     EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
@@ -60,7 +60,7 @@ EntityID AssultRifle(Scene &scene, EntityID parent)
     return gun;
 }
 
-EntityID Sniper(Scene &scene, EntityID parent)
+EntityID Sniper(World &scene, EntityID parent)
 {
     EntityID gun = scene.NewEntity();
     Utils::assignTransform(scene, gun, parent);
@@ -77,7 +77,7 @@ EntityID Sniper(Scene &scene, EntityID parent)
     return gun;
 }
 
-EntityID GroundDrop(Scene &scene, EntityID parent, Vec2 pos)
+EntityID GroundDrop(World &scene, EntityID parent, Vec2 pos)
 {
     EntityID groundDrop = scene.NewEntity();
 
@@ -126,7 +126,7 @@ EntityID GroundDrop(Scene &scene, EntityID parent, Vec2 pos)
     return groundDrop;
 }
 
-EntityID HealthPack(Scene &scene, EntityID parent, Vec2 pos)
+EntityID HealthPack(World &scene, EntityID parent, Vec2 pos)
 {
     EntityID groundDrop = GroundDrop(scene, parent, pos);
 
@@ -141,7 +141,7 @@ EntityID HealthPack(Scene &scene, EntityID parent, Vec2 pos)
     return groundDrop;
 }
 
-EntityID AmmoPack(Scene &scene, EntityID parent, Vec2 pos)
+EntityID AmmoPack(World &scene, EntityID parent, Vec2 pos)
 {
     EntityID groundDrop = GroundDrop(scene, parent, pos);
 
@@ -165,7 +165,7 @@ EntityID AmmoPack(Scene &scene, EntityID parent, Vec2 pos)
     return groundDrop;
 }
 
-EntityID Crate(Scene &scene, EntityID parent, Vec2 pos)
+EntityID Crate(World &scene, EntityID parent, Vec2 pos)
 {
     EntityID crate = scene.NewEntity();
 
@@ -204,7 +204,7 @@ EntityID Crate(Scene &scene, EntityID parent, Vec2 pos)
     return crate;
 }
 
-EntityID Wall(Scene &scene, EntityID parent, Vec2 pos)
+EntityID Wall(World &scene, EntityID parent, Vec2 pos)
 {
     EntityID wall = scene.NewEntity();
 
@@ -216,7 +216,7 @@ EntityID Wall(Scene &scene, EntityID parent, Vec2 pos)
     return wall;
 }
 
-EntityID Bullet(Scene &scene, EntityID root, Vec2 pos, double rotation)
+EntityID Bullet(World &scene, EntityID root, Vec2 pos, double rotation)
 {
     EntityID bullet = scene.NewEntity();
     component::Bullet *pBullet = scene.DirtyAssign<component::Bullet>(bullet);
@@ -232,7 +232,7 @@ EntityID Bullet(Scene &scene, EntityID root, Vec2 pos, double rotation)
     return bullet;
 }
 
-EntityID Player(Scene &scene, Vec2 pos)
+EntityID Player(World &scene, Vec2 pos)
 {
     // Player
     EntityID player = scene.NewEntity();

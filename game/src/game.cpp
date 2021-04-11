@@ -29,7 +29,7 @@ enum Spawn
     wall,
 };
 
-void spawnEntityRand(Scene &scene, EntityID root, Spawn type, int numToSpawn)
+void spawnEntityRand(World &scene, EntityID root, Spawn type, int numToSpawn)
 {
     int countInd = 0;
 
@@ -87,7 +87,7 @@ void spawnEntityRand(Scene &scene, EntityID root, Spawn type, int numToSpawn)
     }
 }
 
-EntityID spawnPlayerRand(Scene &scene)
+EntityID spawnPlayerRand(World &scene)
 {
     for (int i = 0; i < 10000; i++)
     {
@@ -114,7 +114,7 @@ EntityID spawnPlayerRand(Scene &scene)
     return INVALID_ENTITY;
 }
 
-void loadScene(Scene &scene)
+void loadScene(World &scene)
 {
     // Create Boundries
     component::Color boundryColor = {16, 14, 23};
