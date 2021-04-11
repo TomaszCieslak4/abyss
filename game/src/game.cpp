@@ -39,7 +39,7 @@ void spawnEntityRand(World &scene, EntityID root, Spawn type, int numToSpawn)
                         Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
-        for (EntityID ent : SceneView<component::Transform>(scene))
+        for (EntityID ent : WorldView<component::Transform>(scene))
         {
             component::Transform *pTransform = scene.Get<component::Transform>(ent);
             if (pTransform->pos.sqr_dist(pos) < MIN_SPAWN_SEPERATION * MIN_SPAWN_SEPERATION)
@@ -95,7 +95,7 @@ EntityID spawnPlayerRand(World &scene)
                         Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
-        for (EntityID ent : SceneView<component::Transform>(scene))
+        for (EntityID ent : WorldView<component::Transform>(scene))
         {
             component::Transform *pTransform = scene.Get<component::Transform>(ent);
             if (pTransform->pos.sqr_dist(pos) < MIN_SPAWN_SEPERATION * MIN_SPAWN_SEPERATION)

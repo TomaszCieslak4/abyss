@@ -76,7 +76,7 @@ EntityID findClosestDrop(EntityID user)
     double min_dist = INFINITY;
     EntityID closest_drop = INVALID_ENTITY;
 
-    for (EntityID ent : SceneView<component::GroundDrop, component::Transform>(scene))
+    for (EntityID ent : WorldView<component::GroundDrop, component::Transform>(scene))
     {
         component::Transform *pTransform = scene.Get<component::Transform>(ent);
 
@@ -169,7 +169,7 @@ void WorldToViewSystem(World &scene)
 {
     Mat3 identity = Mat3::identity();
 
-    for (EntityID ent : SceneView<component::Transform, component::Camera>(scene, true))
+    for (EntityID ent : WorldView<component::Transform, component::Camera>(scene, true))
     {
         component::Transform *pTransform = scene.Get<component::Transform>(ent);
         component::Camera *pCamera = scene.Get<component::Camera>(ent);
@@ -267,7 +267,7 @@ void RenderSystem(World &scene)
 {
     component::Children *pChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
-    for (EntityID cam : SceneView<component::Camera>(scene, true))
+    for (EntityID cam : WorldView<component::Camera>(scene, true))
     {
         component::Camera *pCamera = scene.Get<component::Camera>(cam);
 
@@ -326,7 +326,7 @@ void checkCollision(World &scene, EntityID ent, EntityID topEnt)
 
 void RigidbodySystem(World &scene, double dt)
 {
-    for (EntityID ent : SceneView<component::Rigidbody, component::Transform>(scene))
+    for (EntityID ent : WorldView<component::Rigidbody, component::Transform>(scene))
     {
         component::Rigidbody *pRigidbody = scene.Get<component::Rigidbody>(ent);
         if (pRigidbody->velocity.sqr_magnitude() > 0.001)
@@ -340,13 +340,13 @@ void RigidbodySystem(World &scene, double dt)
 void CollisionSystem(World &scene)
 {
     // Generate Collisions
-    for (EntityID ent : SceneView<component::ObjectToWorld, component::Rigidbody, component::Transform>(scene))
+    for (EntityID ent : WorldView<component::ObjectToWorld, component::Rigidbody, component::Transform>(scene))
     {
         checkCollision(scene, ent, ent);
     }
 
     // Resolve Collisions
-    for (EntityID ent : SceneView<component::Collision, component::Event>(scene, true))
+    for (EntityID ent : WorldView<component::Collision, component::Event>(scene, true))
     {
         component::Collision *pCollision = scene.Get<component::Collision>(ent);
         component::Transform *pTransform = scene.DirtyGet<component::Transform>(pCollision->source);
@@ -356,7 +356,7 @@ void CollisionSystem(World &scene)
 
 void EventSystem(World &scene)
 {
-    for (EntityID ent : SceneView<component::Event>(scene, true))
+    for (EntityID ent : WorldView<component::Event>(scene, true))
     {
         Utils::destroyEntity(scene, ent);
     }
@@ -364,7 +364,7 @@ void EventSystem(World &scene)
 
 void GroundDropSystem(World &scene, double elapsedTime)
 {
-    for (EntityID ent : SceneView<component::GroundDrop>(scene))
+    for (EntityID ent : WorldView<component::GroundDrop>(scene))
     {
         double t = (sin(elapsedTime * 3) + 1) / 2;
         component::Children *pChildren = scene.Get<component::Children>(ent);
@@ -425,7 +425,7 @@ void PlayerActionsSystem(World &scene)
         bufferInsert<uint8_t>(outBuffer, Action::fire);
     }
 
-    for (EntityID cam : SceneView<component::Camera, component::ObjectToWorld>(scene, true))
+    for (EntityID cam : WorldView<component::Camera, component::ObjectToWorld>(scene, true))
     {
         component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(cam);
 
@@ -439,7 +439,7 @@ void PlayerActionsSystem(World &scene)
 
 void DeathAnimatorSystem(World &scene, double dt)
 {
-    for (EntityID ent : SceneView<component::DeathAnimator>(scene))
+    for (EntityID ent : WorldView<component::DeathAnimator>(scene))
     {
         component::Transform *pTransform = scene.DirtyGet<component::Transform>(ent);
         if (pTransform == nullptr) continue;
@@ -461,7 +461,7 @@ void DeathAnimatorSystem(World &scene, double dt)
 
 void HealthSystem(World &scene, double dt)
 {
-    for (EntityID ent : SceneView<component::Health>(scene))
+    for (EntityID ent : WorldView<component::Health>(scene))
     {
         component::Health *pHealth = scene.Get<component::Health>(ent);
         component::Crate *pCrate = scene.Get<component::Crate>(ent);
@@ -494,7 +494,7 @@ void HealthSystem(World &scene, double dt)
 void CameraFollowSystem(World &scene)
 {
     const double MOVEMENT_SPEED = 10;
-    for (EntityID cam : SceneView<component::Camera, component::Transform>(scene, true))
+    for (EntityID cam : WorldView<component::Camera, component::Transform>(scene, true))
     {
         component::Transform *pCamTransform = scene.DirtyGet<component::Transform>(cam);
 
@@ -506,7 +506,7 @@ void CameraFollowSystem(World &scene)
 
 void DespawnSystem(World &scene, double dt)
 {
-    for (EntityID ent : SceneView<component::GroundDrop, component::Despawn>(scene))
+    for (EntityID ent : WorldView<component::GroundDrop, component::Despawn>(scene))
     {
         component::Despawn *pDespawn = scene.DirtyGet<component::Despawn>(ent);
 
@@ -521,7 +521,7 @@ void DespawnSystem(World &scene, double dt)
 
 void BulletSystem(World &scene, double dt)
 {
-    for (EntityID ent : SceneView<component::Event, component::Collision>(scene, true))
+    for (EntityID ent : WorldView<component::Event, component::Collision>(scene, true))
     {
         component::Collision *pCollision = scene.Get<component::Collision>(ent);
 
@@ -621,7 +621,7 @@ void BulletSystem(World &scene, double dt)
     }
 
 #ifdef SERVER
-    for (EntityID ent : SceneView<component::Bullet>(scene))
+    for (EntityID ent : WorldView<component::Bullet>(scene))
     {
         component::Bullet *pBullet = scene.Get<component::Bullet>(ent);
         component::Transform *pTransform = scene.Get<component::Transform>(ent);
@@ -632,7 +632,7 @@ void BulletSystem(World &scene, double dt)
         }
     }
 
-    for (EntityID ent : SceneView<component::WeaponReload, component::Weapon>(scene))
+    for (EntityID ent : WorldView<component::WeaponReload, component::Weapon>(scene))
     {
         component::Weapon *pWeapon = scene.Get<component::Weapon>(ent);
         component::WeaponReload *pWeaponReload = scene.Get<component::WeaponReload>(ent);
@@ -839,7 +839,7 @@ void ServerNetworkingSystem(World &scene)
 {
     for (ComponentID comp = 1; comp < component::MAX_COMPONENT + 1; comp++)
     {
-        for (EntityID ent : SceneView<>(scene))
+        for (EntityID ent : WorldView<>(scene))
         {
             if (scene.Get(ent, comp) == nullptr || !scene.IsDirty(ent, comp) || !scene.IsSendingUpdates(ent, comp)) continue;
 
@@ -848,7 +848,7 @@ void ServerNetworkingSystem(World &scene)
         }
     }
 
-    for (EntityID ent : SceneView<component::User>(scene))
+    for (EntityID ent : WorldView<component::User>(scene))
     {
         reinterpret_cast<EntityID &>(outBuffer[0]) = ent;
         sendBuffer(outBuffer);
@@ -1045,7 +1045,7 @@ void stateSync(uint32_t buffer)
     bufferInsert<EntityID>(tempBuffer, *user);
     bufferInsert<ComponentID>(tempBuffer, 0 | (NetworkOp::setUser << 30));
 
-    for (EntityID ent : SceneView<>(scene))
+    for (EntityID ent : WorldView<>(scene))
     {
         bufferInsert<EntityID>(tempBuffer, ent);
         bufferInsert<ComponentID>(tempBuffer, 0 | (NetworkOp::create << 30));
@@ -1053,7 +1053,7 @@ void stateSync(uint32_t buffer)
 
     for (ComponentID comp = 1; comp < component::MAX_COMPONENT + 1; comp++)
     {
-        for (EntityID ent : SceneView<>(scene))
+        for (EntityID ent : WorldView<>(scene))
         {
             if (scene.Get(ent, comp) == nullptr) continue;
 

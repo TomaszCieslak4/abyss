@@ -4,14 +4,14 @@
 #include "scene.cpp"
 
 template <typename... ComponentTypes>
-struct SceneView
+struct WorldView
 {
     World *pScene = nullptr;
     ComponentMask componentMask;
     bool all = false;
     std::vector<World::EntityInfo> *entities = nullptr;
 
-    SceneView(World &scene, bool clientSide = false)
+    WorldView(World &scene, bool clientSide = false)
     {
         this->pScene = &scene;
         this->entities = clientSide ? &scene.clientEntities : &scene.networkedEntities;
