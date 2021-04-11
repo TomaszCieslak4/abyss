@@ -154,7 +154,7 @@ class Menu extends Component<MyProp, MyState> {
             variant="contained"
             onClick={() => this.props.history.push("/Profile")}
           >
-            Update Gamemode & Profile
+            Update Profile
           </Button>
           <Button variant="contained" onClick={this.logout}>
             Logout

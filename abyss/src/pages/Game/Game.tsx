@@ -1,8 +1,6 @@
 import { Component, Fragment } from "react";
 import "../../App.css";
-import {
-  Button
-} from "@material-ui/core";
+import { Button } from "@material-ui/core";
 import { ReactComponent as HealthSVG } from "../assets/heart.svg";
 import { ReactComponent as AmmoSVG } from "../assets/ammo.svg";
 import { ReactComponent as ScoreSVG } from "../assets/score.svg";
@@ -10,13 +8,13 @@ import { ReactComponent as KillSVG } from "../assets/players.svg";
 import { PORT } from "../../config";
 
 interface MyState {
-  score: number,
-  kills: number,
-  health: number,
-  maxHealth: number,
-  ammo: number,
-  maxAmmo: number,
-  gameComplete: boolean,
+  score: number;
+  kills: number;
+  health: number;
+  maxHealth: number;
+  ammo: number;
+  maxAmmo: number;
+  gameComplete: boolean;
 }
 
 class Game extends Component<{}, MyState> {
@@ -41,10 +39,9 @@ class Game extends Component<{}, MyState> {
     this.toggleGame = this.toggleGame.bind(this);
     this.leaveLobby = this.leaveLobby.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.restartMatch = this.restartMatch.bind(this);
     this.mainMenu = this.mainMenu.bind(this);
   }
-  
+
   updateScore(value: number) {
     this.setState({
       score: value,
@@ -81,7 +78,7 @@ class Game extends Component<{}, MyState> {
   }
 
   toggleGame(on: boolean) {
-    this.setState({gameComplete: on});
+    this.setState({ gameComplete: on });
   }
 
   async uploadScore() {
@@ -89,7 +86,11 @@ class Game extends Component<{}, MyState> {
       `http://${window.location.hostname}:${PORT}/api/auth/updatescore`,
       {
         method: "PUT",
-        body: JSON.stringify({ score: this.state.score })
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ score: this.state.score }),
       }
     );
     var body = await result.json();
@@ -97,17 +98,17 @@ class Game extends Component<{}, MyState> {
 
   componentDidMount() {
     //@ts-ignore
-    Module.onScoreChange = (score) => (this.updateScore(score));
+    Module.onScoreChange = (score) => this.updateScore(score);
     //@ts-ignore
-    Module.onKillsChange = (kills) => (this.updateKills(kills));
+    Module.onKillsChange = (kills) => this.updateKills(kills);
     //@ts-ignore
-    Module.onHealthChange = (health) => (this.updateHealth(health));
+    Module.onHealthChange = (health) => this.updateHealth(health);
     //@ts-ignore
-    Module.onMaxHealthChange = (health) => (this.updateMaxHealth(health));
+    Module.onMaxHealthChange = (health) => this.updateMaxHealth(health);
     //@ts-ignore
-    Module.onAmmoChange = (ammo) => (this.updateAmmo(ammo));
+    Module.onAmmoChange = (ammo) => this.updateAmmo(ammo);
     //@ts-ignore
-    Module.onMaxAmmoChange = (ammo) => (this.updateMaxAmmo(ammo));
+    Module.onMaxAmmoChange = (ammo) => this.updateMaxAmmo(ammo);
     //@ts-ignore
     Module.onDeath = () => {
       this.uploadScore();
@@ -117,8 +118,8 @@ class Game extends Component<{}, MyState> {
     Module.start();
   }
 
-  leaveLobby() {
-    this.uploadScore()
+  async leaveLobby() {
+    await this.uploadScore();
     //@ts-ignore
     this.mainMenu();
   }
@@ -126,14 +127,6 @@ class Game extends Component<{}, MyState> {
   mainMenu() {
     //@ts-ignore
     this.props.history.push("/menu");
-  }
-
-  restartMatch() {
-    //@ts-ignore
-    Module.stop();
-    //@ts-ignore
-    Module.start();
-    this.toggleGame(false);
   }
 
   componentWillUnmount() {
@@ -157,12 +150,9 @@ class Game extends Component<{}, MyState> {
             <KillSVG />
             <p>Kills: {this.state.kills}</p>
             <br />
-            <Button variant="contained" onClick={this.restartMatch}>
-              New Match
-            </Button>
             <Button variant="contained" onClick={this.mainMenu}>
               Main Menu
-          </Button>
+            </Button>
           </form>
         </div>
       );
@@ -173,14 +163,19 @@ class Game extends Component<{}, MyState> {
         <div>
           <Button variant="contained" onClick={this.leaveLobby}>
             Leave match
-        </Button>
+          </Button>
         </div>
-        <div id="ui_game" className='ui_game'>
+        <div id="ui_game" className="ui_game">
           <HealthSVG />
-          <p> Health: {this.state.health} / {this.state.maxHealth}</p>
+          <p>
+            {" "}
+            Health: {this.state.health} / {this.state.maxHealth}
+          </p>
           <br />
           <AmmoSVG />
-          <p>Ammo: {this.state.ammo} / {this.state.maxAmmo}</p>
+          <p>
+            Ammo: {this.state.ammo} / {this.state.maxAmmo}
+          </p>
           <br />
           <ScoreSVG />
           <p>Score: {this.state.score}</p>

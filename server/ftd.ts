@@ -208,7 +208,8 @@ app.put('/api/auth/updatepassword', async (req, res) => {
 });
 
 app.put('/api/auth/updatescore', async (req, res) => {
-    if (!req.body.score)
+    //@ts-ignore
+    if (req.body.score===undefined)
         return res.status(401).json({ error: 'No score sent!' });
     try {
         let newScore = Number(req.body.score);
@@ -220,7 +221,7 @@ app.put('/api/auth/updatescore', async (req, res) => {
         let query = 'SELECT highScore FROM scores WHERE username=$1;';
         //@ts-ignore
         let result = await pool.query(query, [req.session.username]);
-        let highScore = Number(result.rows[0]["highScore"]);
+        let highScore = Number(result.rows[0]["highscore"]);
 
         if (highScore < newScore) {
             let query = 'UPDATE scores SET highScore=$1, lastScore=$2 WHERE username=$3;';
