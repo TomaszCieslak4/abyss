@@ -42,6 +42,7 @@ class Game extends Component<{}, MyState> {
     this.leaveLobby = this.leaveLobby.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.restartMatch = this.restartMatch.bind(this);
+    this.mainMenu = this.mainMenu.bind(this);
   }
   
   updateScore(value: number) {
@@ -117,6 +118,12 @@ class Game extends Component<{}, MyState> {
   }
 
   leaveLobby() {
+    this.uploadScore()
+    //@ts-ignore
+    this.mainMenu();
+  }
+
+  mainMenu() {
     //@ts-ignore
     this.props.history.push("/menu");
   }
@@ -153,7 +160,7 @@ class Game extends Component<{}, MyState> {
             <Button variant="contained" onClick={this.restartMatch}>
               New Match
             </Button>
-            <Button variant="contained" onClick={this.leaveLobby}>
+            <Button variant="contained" onClick={this.mainMenu}>
               Main Menu
           </Button>
           </form>
