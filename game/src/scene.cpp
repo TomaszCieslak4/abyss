@@ -5,8 +5,7 @@
 #include <vector>
 #include "network.cpp"
 #include <iostream>
-namespace World
-{
+
 typedef unsigned int EntityIndex;
 typedef unsigned int EntityVersion;
 typedef unsigned long long EntityID;
@@ -19,14 +18,13 @@ constexpr EntityID ROOT_ENTITY = 0;
 
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
 
-#define INVALID_ENTITY World::CreateEntityId(World::EntityIndex(-1), 0)
+#define INVALID_ENTITY CreateEntityId(EntityIndex(-1), 0)
 
 template <class T>
-constexpr World::ComponentID GetId()
+constexpr ComponentID GetId()
 {
     return T::id;
 }
-
 inline bool IsClientEntity(EntityID id) { return (id >> 32) >= MAX_ENTITIES; }
 inline EntityID CreateEntityId(EntityIndex index, EntityVersion version) { return ((EntityID)index << 32) | ((EntityID)version); }
 inline EntityIndex GetEntityIndex(EntityID id) { return IsClientEntity(id) ? (id >> 32) - MAX_ENTITIES : id >> 32; }
@@ -34,15 +32,15 @@ inline EntityIndex GetEntityComponentIndex(EntityID id) { return id >> 32; }
 inline EntityVersion GetEntityVersion(EntityID id) { return (EntityVersion)id; }
 inline bool IsEntityIdValid(EntityID id) { return (id >> 32) != EntityIndex(-1); }
 
-struct ComponentPool
+struct ComponentData
 {
-    ComponentPool(size_t elementsize)
+    ComponentData(size_t elementsize)
     {
         elementSize = elementsize;
         pData = new char[elementSize * MAX_ENTITIES * MAX_CLIENT_SIDE_ENTITIES];
     }
 
-    ~ComponentPool()
+    ~ComponentData()
     {
         delete[] pData;
     }
@@ -55,7 +53,7 @@ struct ComponentPool
 
 struct Scene
 {
-    struct EntityDesc
+    struct EntityInfo
     {
         EntityID id;
         ComponentMask compMask;
@@ -63,16 +61,16 @@ struct Scene
         ComponentMask updateMask;
     };
 
-    std::vector<EntityDesc> networkedEntities;
-    std::vector<EntityDesc> clientEntities;
+    std::vector<EntityInfo> networkedEntities;
+    std::vector<EntityInfo> clientEntities;
     std::vector<EntityIndex> freeClientEntities;
     std::vector<EntityIndex> freeNetworkedEntities;
-    std::vector<ComponentPool *> componentPools;
+    std::vector<ComponentData *> componentPools;
 
     template <typename T>
     T *Get(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         T *pComponent = static_cast<T *>(componentPools[componentId]->get(GetEntityComponentIndex(id)));
@@ -81,7 +79,7 @@ struct Scene
 
     void *Get(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         return componentPools[componentId]->get(GetEntityComponentIndex(id));
     }
@@ -89,13 +87,13 @@ struct Scene
     template <typename T>
     void Remove(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if ((*entities)[GetEntityIndex(id)].id != id) return; // Deleted
         ComponentID componentId = GetId<T>();
         (*entities)[GetEntityIndex(id)].compMask.reset(componentId);
 
 #ifdef SERVER
-        if (!World::IsClientEntity(id))
+        if (!IsClientEntity(id))
         {
             bufferInsert<EntityID>(outBuffer, id);
             bufferInsert<ComponentID>(outBuffer, componentId | (NetworkOp::destroy << 30));
@@ -105,7 +103,7 @@ struct Scene
 
     void Remove(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if ((*entities)[GetEntityIndex(id)].id != id) return; // Deleted
         (*entities)[GetEntityIndex(id)].compMask.reset(componentId);
     }
@@ -113,7 +111,7 @@ struct Scene
     template <typename T>
     void SetClean(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return;
         (*entities)[GetEntityIndex(id)].dirtyMask.reset(componentId);
@@ -121,7 +119,7 @@ struct Scene
 
     void SetClean(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return;
         (*entities)[GetEntityIndex(id)].dirtyMask.reset(componentId);
     }
@@ -129,7 +127,7 @@ struct Scene
     template <typename T>
     T *DirtyGet(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         (*entities)[GetEntityIndex(id)].dirtyMask.set(componentId);
@@ -138,7 +136,7 @@ struct Scene
 
     void *DirtyGet(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         (*entities)[GetEntityIndex(id)].dirtyMask.set(componentId);
         return componentPools[componentId]->get(GetEntityComponentIndex(id));
@@ -147,7 +145,7 @@ struct Scene
     template <typename T>
     bool IsDirty(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
         return (*entities)[GetEntityIndex(id)].dirtyMask.test(componentId);
@@ -155,7 +153,7 @@ struct Scene
 
     bool IsDirty(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
         return (*entities)[GetEntityIndex(id)].dirtyMask.test(componentId);
     }
@@ -163,7 +161,7 @@ struct Scene
     template <typename T>
     bool IsSendingUpdates(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
         return (*entities)[GetEntityIndex(id)].updateMask.test(componentId);
@@ -171,7 +169,7 @@ struct Scene
 
     bool IsSendingUpdates(EntityID id, ComponentID componentId)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
         return (*entities)[GetEntityIndex(id)].updateMask.test(componentId);
     }
@@ -179,7 +177,7 @@ struct Scene
     template <typename T>
     void Assign(EntityID id, bool sendUpdates = true)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
 
         ComponentID componentId = GetId<T>();
 
@@ -187,7 +185,7 @@ struct Scene
             componentPools.resize(componentId + 1, nullptr);
 
         if (componentPools[componentId] == nullptr)
-            componentPools[componentId] = new ComponentPool(sizeof(T));
+            componentPools[componentId] = new ComponentData(sizeof(T));
 
         T *pComponent = new (componentPools[componentId]->get(GetEntityComponentIndex(id))) T();
 
@@ -197,7 +195,7 @@ struct Scene
             (*entities)[GetEntityIndex(id)].updateMask.set(componentId);
 
 #ifdef SERVER
-        if (!World::IsClientEntity(id))
+        if (!IsClientEntity(id))
         {
             bufferInsert<EntityID>(outBuffer, id);
             bufferInsert<ComponentID>(outBuffer, componentId | (NetworkOp::create << 30));
@@ -219,8 +217,8 @@ struct Scene
 
     void DestroyEntity(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
-        std::vector<EntityIndex> *freeEntities = World::IsClientEntity(id) ? &freeClientEntities : &freeNetworkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityIndex> *freeEntities = IsClientEntity(id) ? &freeClientEntities : &freeNetworkedEntities;
         EntityID newID = CreateEntityId(EntityIndex(-1), GetEntityVersion(id) + 1);
         (*entities)[GetEntityIndex(id)].id = newID;
         (*entities)[GetEntityIndex(id)].compMask.reset();
@@ -229,7 +227,7 @@ struct Scene
         (*freeEntities).push_back(GetEntityIndex(id));
 
 #ifdef SERVER
-        if (!World::IsClientEntity(id))
+        if (!IsClientEntity(id))
         {
             bufferInsert<EntityID>(outBuffer, id);
             bufferInsert<ComponentID>(outBuffer, 0 | (NetworkOp::destroy << 30));
@@ -239,7 +237,7 @@ struct Scene
 
     EntityID NewEntity(EntityID id)
     {
-        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = IsClientEntity(id) ? &clientEntities : &networkedEntities;
         EntityIndex ind = GetEntityIndex(id);
 
         if (ind >= (*entities).size())
@@ -254,7 +252,7 @@ struct Scene
 #ifndef SERVER
         clientSide = true;
 #endif
-        std::vector<EntityDesc> *entities = clientSide ? &clientEntities : &networkedEntities;
+        std::vector<EntityInfo> *entities = clientSide ? &clientEntities : &networkedEntities;
         std::vector<EntityIndex> *freeEntities = clientSide ? &freeClientEntities : &freeNetworkedEntities;
 
         if (!(*freeEntities).empty())
@@ -290,7 +288,5 @@ struct Scene
         return newId;
     }
 };
-
-} // namespace World
 
 #endif

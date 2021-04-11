@@ -29,7 +29,7 @@ enum Spawn
     wall,
 };
 
-void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int numToSpawn)
+void spawnEntityRand(Scene &scene, EntityID root, Spawn type, int numToSpawn)
 {
     int countInd = 0;
 
@@ -39,9 +39,9 @@ void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int 
                         Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
-        for (World::EntityID ent : SceneView<Transform>(scene))
+        for (EntityID ent : SceneView<component::Transform>(scene))
         {
-            Transform *pTransform = scene.Get<Transform>(ent);
+            component::Transform *pTransform = scene.Get<component::Transform>(ent);
             if (pTransform->pos.sqr_dist(pos) < MIN_SPAWN_SEPERATION * MIN_SPAWN_SEPERATION)
             {
                 safe = false;
@@ -55,25 +55,25 @@ void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int 
         {
             case Spawn::ammo:
             {
-                World::EntityID ent = Prefabs::spawnAmmoPackPrefab(scene, root, pos);
+                EntityID ent = prefab::AmmoPack(scene, root, pos);
                 Utils::setSiblingIndex(scene, ent, 0);
                 break;
             }
             case Spawn::health:
             {
-                World::EntityID ent = Prefabs::spawnHealthPackPrefab(scene, root, pos);
+                EntityID ent = prefab::HealthPack(scene, root, pos);
                 Utils::setSiblingIndex(scene, ent, 0);
                 break;
             }
             case Spawn::crate:
             {
-                World::EntityID ent = Prefabs::spawnCratePrefab(scene, root, pos);
+                EntityID ent = prefab::Crate(scene, root, pos);
                 Utils::setSiblingIndex(scene, ent, 0);
                 break;
             }
             case Spawn::wall:
             {
-                World::EntityID ent = Prefabs::spawnWallPrefab(scene, root, pos);
+                EntityID ent = prefab::Wall(scene, root, pos);
                 Utils::setSiblingIndex(scene, ent, 0);
                 break;
             }
@@ -87,7 +87,7 @@ void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int 
     }
 }
 
-World::EntityID spawnPlayerRand(World::Scene &scene)
+EntityID spawnPlayerRand(Scene &scene)
 {
     for (int i = 0; i < 10000; i++)
     {
@@ -95,9 +95,9 @@ World::EntityID spawnPlayerRand(World::Scene &scene)
                         Utils::lerp(MIN_SPAWN_SEPERATION - PLAY_RADIUS, PLAY_RADIUS - MIN_SPAWN_SEPERATION, Utils::drandom()));
         bool safe = true;
 
-        for (World::EntityID ent : SceneView<Transform>(scene))
+        for (EntityID ent : SceneView<component::Transform>(scene))
         {
-            Transform *pTransform = scene.Get<Transform>(ent);
+            component::Transform *pTransform = scene.Get<component::Transform>(ent);
             if (pTransform->pos.sqr_dist(pos) < MIN_SPAWN_SEPERATION * MIN_SPAWN_SEPERATION)
             {
                 safe = false;
@@ -107,26 +107,26 @@ World::EntityID spawnPlayerRand(World::Scene &scene)
 
         if (!safe) continue;
 
-        return Prefabs::spawnPlayerPrefab(scene, pos);
+        return prefab::Player(scene, pos);
     }
 
     std::cout << "HERE" << std::endl;
     return INVALID_ENTITY;
 }
 
-void loadScene(World::Scene &scene)
+void loadScene(Scene &scene)
 {
     // Create Boundries
-    Color boundryColor = {16, 14, 23};
-    Prefabs::spawnRectangle(scene, Vec2(0, COMBINED_SIZE), Vec2(2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH, 2 * BOUNDRY_DEPTH), 0, World::ROOT_ENTITY, boundryColor, true);
-    Prefabs::spawnRectangle(scene, Vec2(0, -COMBINED_SIZE), Vec2(2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH, 2 * BOUNDRY_DEPTH), 0, World::ROOT_ENTITY, boundryColor, true);
-    Prefabs::spawnRectangle(scene, Vec2(-COMBINED_SIZE, 0), Vec2(2 * BOUNDRY_DEPTH, 2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH), 0, World::ROOT_ENTITY, boundryColor, true);
-    Prefabs::spawnRectangle(scene, Vec2(COMBINED_SIZE, 0), Vec2(2 * BOUNDRY_DEPTH, 2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH), 0, World::ROOT_ENTITY, boundryColor, true);
+    component::Color boundryColor = {16, 14, 23};
+    prefab::Rectangle(scene, Vec2(0, COMBINED_SIZE), Vec2(2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH, 2 * BOUNDRY_DEPTH), 0, ROOT_ENTITY, boundryColor, true);
+    prefab::Rectangle(scene, Vec2(0, -COMBINED_SIZE), Vec2(2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH, 2 * BOUNDRY_DEPTH), 0, ROOT_ENTITY, boundryColor, true);
+    prefab::Rectangle(scene, Vec2(-COMBINED_SIZE, 0), Vec2(2 * BOUNDRY_DEPTH, 2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH), 0, ROOT_ENTITY, boundryColor, true);
+    prefab::Rectangle(scene, Vec2(COMBINED_SIZE, 0), Vec2(2 * BOUNDRY_DEPTH, 2 * COMBINED_SIZE + 2 * BOUNDRY_DEPTH), 0, ROOT_ENTITY, boundryColor, true);
 
     // Spawn Random Item
     std::array<int, 4> counts = {8, 8, 10, 5};
     for (int i = 0; i < counts.size(); i++)
-        spawnEntityRand(scene, World::ROOT_ENTITY, (Spawn)i, counts[i]);
+        spawnEntityRand(scene, ROOT_ENTITY, (Spawn)i, counts[i]);
 }
 
 } // namespace Game

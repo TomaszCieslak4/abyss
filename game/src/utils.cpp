@@ -10,12 +10,12 @@
 
 namespace Utils
 {
-void setSiblingIndex(World::Scene &scene, World::EntityID ent, int index)
+void setSiblingIndex(Scene &scene, EntityID ent, int index)
 {
-    Parent *pParent = scene.Get<Parent>(ent);
+    component::Parent *pParent = scene.Get<component::Parent>(ent);
     if (pParent == nullptr) return;
 
-    Children *pChildren = scene.DirtyGet<Children>(pParent->parent);
+    component::Children *pChildren = scene.DirtyGet<component::Children>(pParent->parent);
     if (pChildren == nullptr) return;
 
     for (int i = 0; i < pChildren->children.size(); i++)
@@ -26,13 +26,13 @@ void setSiblingIndex(World::Scene &scene, World::EntityID ent, int index)
     pChildren->children.insert(pChildren->children.begin() + index, ent);
 }
 
-void setParent(World::Scene &scene, World::EntityID ent, World::EntityID par)
+void setParent(Scene &scene, EntityID ent, EntityID par)
 {
-    Parent *pParent = scene.DirtyGet<Parent>(ent);
+    component::Parent *pParent = scene.DirtyGet<component::Parent>(ent);
     if (pParent != nullptr)
     {
-        Children *pChildren = scene.DirtyGet<Children>(pParent->parent);
-        if (pChildren == nullptr) pChildren = scene.DirtyAssign<Children>(pParent->parent);
+        component::Children *pChildren = scene.DirtyGet<component::Children>(pParent->parent);
+        if (pChildren == nullptr) pChildren = scene.DirtyAssign<component::Children>(pParent->parent);
 
         for (int i = 0; i < pChildren->children.size(); i++)
             if (pChildren->children[i] == ent)
@@ -40,22 +40,22 @@ void setParent(World::Scene &scene, World::EntityID ent, World::EntityID par)
     }
     else
     {
-        pParent = scene.DirtyAssign<Parent>(ent);
+        pParent = scene.DirtyAssign<component::Parent>(ent);
     }
 
     pParent->parent = par;
 
-    Children *pChildren = scene.DirtyGet<Children>(par);
-    if (pChildren == nullptr) pChildren = scene.DirtyAssign<Children>(par);
+    component::Children *pChildren = scene.DirtyGet<component::Children>(par);
+    if (pChildren == nullptr) pChildren = scene.DirtyAssign<component::Children>(par);
     pChildren->children.push_back(ent);
 }
 
-void destroyEntity(World::Scene &scene, World::EntityID ent)
+void destroyEntity(Scene &scene, EntityID ent)
 {
-    Parent *pParent = scene.Get<Parent>(ent);
+    component::Parent *pParent = scene.Get<component::Parent>(ent);
     if (pParent != nullptr)
     {
-        Children *pChildren = scene.DirtyGet<Children>(pParent->parent);
+        component::Children *pChildren = scene.DirtyGet<component::Children>(pParent->parent);
 
         if (pChildren != nullptr)
             for (int i = pChildren->children.size() - 1; i >= 0; i--)
@@ -63,7 +63,7 @@ void destroyEntity(World::Scene &scene, World::EntityID ent)
                     pChildren->children.erase(pChildren->children.begin() + i);
     }
 
-    Children *pChildren = scene.Get<Children>(ent);
+    component::Children *pChildren = scene.Get<component::Children>(ent);
 
     if (pChildren != nullptr)
         for (int i = pChildren->children.size() - 1; i >= 0; i--)
@@ -72,18 +72,18 @@ void destroyEntity(World::Scene &scene, World::EntityID ent)
     scene.DestroyEntity(ent);
 }
 
-Polygon *assignShape(World::Scene &scene, World::EntityID ent, Shape shape, bool addRenderer = true)
+component::Polygon *assignShape(Scene &scene, EntityID ent, component::Shape shape, bool addRenderer = true)
 {
-    Polygon *pMesh = scene.DirtyAssign<Polygon>(ent);
-    if (addRenderer) scene.Assign<Renderer>(ent);
+    component::Polygon *pMesh = scene.DirtyAssign<component::Polygon>(ent);
+    if (addRenderer) scene.Assign<component::Renderer>(ent);
 
     switch (shape)
     {
-        case Shape::rectangle:
+        case component::Shape::rectangle:
             pMesh->verticies = {Vec2(-0.5, -0.5), Vec2(0.5, -0.5), Vec2(0.5, 0.5), Vec2(-0.5, 0.5)};
             break;
 
-        case Shape::triangle:
+        case component::Shape::triangle:
             pMesh->verticies = {Vec2(0, -0.5), Vec2(0.5, 0.5), Vec2(-0.5, 0.5)};
             break;
 
@@ -94,10 +94,10 @@ Polygon *assignShape(World::Scene &scene, World::EntityID ent, Shape shape, bool
     return pMesh;
 }
 
-Transform *assignTransform(World::Scene &scene, World::EntityID ent, World::EntityID parent = World::ROOT_ENTITY)
+component::Transform *assignTransform(Scene &scene, EntityID ent, EntityID parent = ROOT_ENTITY)
 {
-    Transform *pTransform = scene.DirtyAssign<Transform>(ent);
-    scene.Assign<ObjectToWorld>(ent);
+    component::Transform *pTransform = scene.DirtyAssign<component::Transform>(ent);
+    scene.Assign<component::ObjectToWorld>(ent);
     setParent(scene, ent, parent);
     return pTransform;
 }

@@ -33,7 +33,7 @@ enum Action
     MAX = fire
 };
 
-World::Scene scene;
+Scene scene;
 double elapsedTime;
 std::bitset<Action::MAX + 1> key_state;
 std::bitset<Action::MAX + 1> last_key_state;
@@ -48,37 +48,37 @@ std::vector<uint8_t> tempBuffer;
 std::vector<uint8_t> inBuffer;
 std::vector<uint8_t> outBuffer;
 
-World::EntityID clientUser = INVALID_ENTITY;
+EntityID clientUser = INVALID_ENTITY;
 
-void calculateMatrix(World::Scene &scene, World::EntityID ent)
+void calculateMatrix(Scene &scene, EntityID ent)
 {
-    Transform *pTransform = scene.Get<Transform>(ent);
-    ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(ent);
-    Parent *pParent = scene.Get<Parent>(ent);
-    ObjectToWorld *pParentObjectToWorld = scene.DirtyGet<ObjectToWorld>(pParent->parent);
+    component::Transform *pTransform = scene.Get<component::Transform>(ent);
+    component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(ent);
+    component::Parent *pParent = scene.Get<component::Parent>(ent);
+    component::ObjectToWorld *pParentObjectToWorld = scene.DirtyGet<component::ObjectToWorld>(pParent->parent);
 
     Mat3 identity = Mat3::identity();
     Mat3 scale_v = Mat3::scale(identity, pTransform->scale);
     Mat3 rotate_o = Mat3::rotate(scale_v, pTransform->rotation);
     pObjectToWorld->matrix = pParentObjectToWorld->matrix * Mat3::translate(rotate_o, pTransform->pos);
 
-    Children *pChildren = scene.Get<Children>(ent);
+    component::Children *pChildren = scene.Get<component::Children>(ent);
     if (pChildren == nullptr) return;
-    for (World::EntityID ent : pChildren->children)
+    for (EntityID ent : pChildren->children)
     {
         calculateMatrix(scene, ent);
     }
 }
 
-World::EntityID findClosestDrop(World::EntityID user)
+EntityID findClosestDrop(EntityID user)
 {
-    Transform *pUsrTransform = scene.Get<Transform>(user);
+    component::Transform *pUsrTransform = scene.Get<component::Transform>(user);
     double min_dist = INFINITY;
-    World::EntityID closest_drop = INVALID_ENTITY;
+    EntityID closest_drop = INVALID_ENTITY;
 
-    for (World::EntityID ent : SceneView<GroundDrop, Transform>(scene))
+    for (EntityID ent : SceneView<component::GroundDrop, component::Transform>(scene))
     {
-        Transform *pTransform = scene.Get<Transform>(ent);
+        component::Transform *pTransform = scene.Get<component::Transform>(ent);
 
         double sqr_dist = pUsrTransform->pos.sqr_dist(pTransform->pos);
         if (sqr_dist < min_dist && sqr_dist < Game::INTERACT_RANGE * Game::INTERACT_RANGE)
@@ -90,89 +90,89 @@ World::EntityID findClosestDrop(World::EntityID user)
     return closest_drop;
 }
 
-World::EntityID getPlayerWeapon(World::EntityID user)
+EntityID getPlayerWeapon(EntityID user)
 {
-    Children *pChildren = scene.Get<Children>(user);
-    World::EntityID spawnpoint = pChildren->children.back();
-    Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
+    component::Children *pChildren = scene.Get<component::Children>(user);
+    EntityID spawnpoint = pChildren->children.back();
+    component::Children *pSpawnpointChildren = scene.Get<component::Children>(spawnpoint);
     return pSpawnpointChildren->children[0];
 }
 
-void pickupDrop(World::EntityID user, World::EntityID drop)
+void pickupDrop(EntityID user, EntityID drop)
 {
-    HealthPack *pHealthPack = scene.Get<HealthPack>(drop);
+    component::HealthPack *pHealthPack = scene.Get<component::HealthPack>(drop);
     if (pHealthPack != nullptr)
     {
-        Health *pHealth = scene.DirtyGet<Health>(user);
+        component::Health *pHealth = scene.DirtyGet<component::Health>(user);
         pHealth->health = pHealth->max_health;
-        scene.Remove<GroundDrop>(drop);
-        scene.Assign<DeathAnimator>(drop, false);
+        scene.Remove<component::GroundDrop>(drop);
+        scene.Assign<component::DeathAnimator>(drop, false);
 
-        Game::spawnEntityRand(scene, World::ROOT_ENTITY, Game::Spawn::health, 1);
+        Game::spawnEntityRand(scene, ROOT_ENTITY, Game::Spawn::health, 1);
         return;
     }
 
-    AmmoPack *pAmmoPack = scene.Get<AmmoPack>(drop);
+    component::AmmoPack *pAmmoPack = scene.Get<component::AmmoPack>(drop);
     if (pAmmoPack != nullptr)
     {
-        Weapon *pWeapon = scene.DirtyGet<Weapon>(getPlayerWeapon(user));
+        component::Weapon *pWeapon = scene.DirtyGet<component::Weapon>(getPlayerWeapon(user));
         pWeapon->ammo = pWeapon->max_ammo;
 
-        scene.Remove<GroundDrop>(drop);
-        scene.Assign<DeathAnimator>(drop, false);
-        Game::spawnEntityRand(scene, World::ROOT_ENTITY, Game::Spawn::ammo, 1);
+        scene.Remove<component::GroundDrop>(drop);
+        scene.Assign<component::DeathAnimator>(drop, false);
+        Game::spawnEntityRand(scene, ROOT_ENTITY, Game::Spawn::ammo, 1);
         return;
     }
 
-    Children *pChildren = scene.Get<Children>(drop);
-    World::EntityID droppedObj = pChildren->children.back();
-    Weapon *pWeapon = scene.DirtyGet<Weapon>(droppedObj);
+    component::Children *pChildren = scene.Get<component::Children>(drop);
+    EntityID droppedObj = pChildren->children.back();
+    component::Weapon *pWeapon = scene.DirtyGet<component::Weapon>(droppedObj);
 
     if (pWeapon != nullptr)
     {
-        Children *pChildren = scene.Get<Children>(user);
-        World::EntityID spawnpoint = pChildren->children.back();
-        Children *pSpawnpointChildren = scene.Get<Children>(spawnpoint);
+        component::Children *pChildren = scene.Get<component::Children>(user);
+        EntityID spawnpoint = pChildren->children.back();
+        component::Children *pSpawnpointChildren = scene.Get<component::Children>(spawnpoint);
 
         Utils::setParent(scene, droppedObj, spawnpoint);
-        Transform *pTransform = scene.DirtyGet<Transform>(droppedObj);
+        component::Transform *pTransform = scene.DirtyGet<component::Transform>(droppedObj);
         pTransform->pos = Vec2::zero();
 
         if (pSpawnpointChildren->children.size() > 0)
         {
-            World::EntityID oldWeapon = pSpawnpointChildren->children[0];
+            EntityID oldWeapon = pSpawnpointChildren->children[0];
             Utils::setParent(scene, oldWeapon, drop);
-            Transform *pTransform = scene.DirtyGet<Transform>(oldWeapon);
+            component::Transform *pTransform = scene.DirtyGet<component::Transform>(oldWeapon);
             pTransform->pos = Vec2::zero();
             pTransform->rotation = 0;
-            Despawn *pDespawn = scene.DirtyAssign<Despawn>(drop);
+            component::Despawn *pDespawn = scene.DirtyAssign<component::Despawn>(drop);
             pDespawn->time_to_despawn = 10;
             return;
         }
 
-        scene.Remove<GroundDrop>(drop);
-        scene.Assign<DeathAnimator>(drop, false);
+        scene.Remove<component::GroundDrop>(drop);
+        scene.Assign<component::DeathAnimator>(drop, false);
     }
 }
 
-void ObjectToWorldSystem(World::Scene &scene)
+void ObjectToWorldSystem(Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(World::ROOT_ENTITY);
+    component::Children *pChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
-    for (World::EntityID ent : pChildren->children)
+    for (EntityID ent : pChildren->children)
     {
         calculateMatrix(scene, ent);
     }
 }
 
-void WorldToViewSystem(World::Scene &scene)
+void WorldToViewSystem(Scene &scene)
 {
     Mat3 identity = Mat3::identity();
 
-    for (World::EntityID ent : SceneView<Transform, Camera>(scene, true))
+    for (EntityID ent : SceneView<component::Transform, component::Camera>(scene, true))
     {
-        Transform *pTransform = scene.Get<Transform>(ent);
-        Camera *pCamera = scene.Get<Camera>(ent);
+        component::Transform *pTransform = scene.Get<component::Transform>(ent);
+        component::Camera *pCamera = scene.Get<component::Camera>(ent);
         double size = std::min(screen_size.x, screen_size.y);
         Mat3 translate_o = Mat3::translate(identity, pTransform->pos * -1);
         Mat3 rotate_o = Mat3::rotate(translate_o, -pTransform->rotation);
@@ -182,15 +182,15 @@ void WorldToViewSystem(World::Scene &scene)
     }
 }
 
-void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
+void renderEntity(Scene &scene, EntityID ent, Mat3 &view_matrix)
 {
-    Color *pColor = scene.Get<Color>(ent);
-    ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(ent);
+    component::Color *pColor = scene.Get<component::Color>(ent);
+    component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(ent);
 
     if (pColor != nullptr && pObjectToWorld != nullptr)
     {
         Mat3 object_to_view = view_matrix * pObjectToWorld->matrix;
-        Outline *pOutline = scene.Get<Outline>(ent);
+        component::Outline *pOutline = scene.Get<component::Outline>(ent);
 
         EM_ASM({
             Module.context.save();
@@ -210,7 +210,7 @@ void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
                    pOutline->thickness, pColor->r, pColor->g, pColor->b, pColor->a);
         }
 
-        Arc *pArcRenderer = scene.Get<Arc>(ent);
+        component::Arc *pArcRenderer = scene.Get<component::Arc>(ent);
 
         if (pArcRenderer != nullptr)
         {
@@ -220,7 +220,7 @@ void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
                    pArcRenderer->start_angle, pArcRenderer->end_angle);
         }
 
-        Polygon *pMesh = scene.Get<Polygon>(ent);
+        component::Polygon *pMesh = scene.Get<component::Polygon>(ent);
 
         if (pMesh != nullptr)
         {
@@ -254,130 +254,130 @@ void renderEntity(World::Scene &scene, World::EntityID ent, Mat3 &view_matrix)
         }
     }
 
-    Children *pChildren = scene.Get<Children>(ent);
+    component::Children *pChildren = scene.Get<component::Children>(ent);
     if (pChildren == nullptr) return;
 
-    for (World::EntityID ent : pChildren->children)
+    for (EntityID ent : pChildren->children)
     {
         renderEntity(scene, ent, view_matrix);
     }
 }
 
-void RenderSystem(World::Scene &scene)
+void RenderSystem(Scene &scene)
 {
-    Children *pChildren = scene.Get<Children>(World::ROOT_ENTITY);
+    component::Children *pChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
-    for (World::EntityID cam : SceneView<Camera>(scene, true))
+    for (EntityID cam : SceneView<component::Camera>(scene, true))
     {
-        Camera *pCamera = scene.Get<Camera>(cam);
+        component::Camera *pCamera = scene.Get<component::Camera>(cam);
 
-        for (World::EntityID ent : pChildren->children)
+        for (EntityID ent : pChildren->children)
         {
             renderEntity(scene, ent, pCamera->world_to_view);
         }
     }
 }
 
-void checkCollisionHelper(World::Scene &scene, World::EntityID ent, World::EntityID other, World::EntityID topEnt, World::EntityID otherTopEnt)
+void checkCollisionHelper(Scene &scene, EntityID ent, EntityID other, EntityID topEnt, EntityID otherTopEnt)
 {
-    if (scene.Get<Collider>(ent) != nullptr)
+    if (scene.Get<component::Collider>(ent) != nullptr)
     {
         Vec2 mtv;
 
         if (sat(scene, ent, other, mtv))
         {
-            World::EntityID collisionEvent = scene.NewEntity(true);
-            scene.Assign<Event>(collisionEvent);
-            Collision *pCollision = scene.DirtyAssign<Collision>(collisionEvent);
+            EntityID collisionEvent = scene.NewEntity(true);
+            scene.Assign<component::Event>(collisionEvent);
+            component::Collision *pCollision = scene.DirtyAssign<component::Collision>(collisionEvent);
             pCollision->source = topEnt;
             pCollision->target = otherTopEnt;
             pCollision->mtv = mtv;
         }
     }
 
-    Children *pChildren = scene.Get<Children>(ent);
+    component::Children *pChildren = scene.Get<component::Children>(ent);
     if (pChildren == nullptr) return;
-    for (World::EntityID ent : pChildren->children)
+    for (EntityID ent : pChildren->children)
     {
         checkCollisionHelper(scene, ent, other, topEnt, otherTopEnt);
     }
 }
 
-void checkCollision(World::Scene &scene, World::EntityID ent, World::EntityID topEnt)
+void checkCollision(Scene &scene, EntityID ent, EntityID topEnt)
 {
-    Children *pRootChildren = scene.Get<Children>(World::ROOT_ENTITY);
+    component::Children *pRootChildren = scene.Get<component::Children>(ROOT_ENTITY);
 
-    if (scene.Get<Collider>(ent) != nullptr)
+    if (scene.Get<component::Collider>(ent) != nullptr)
     {
-        for (World::EntityID rootEnt : pRootChildren->children)
+        for (EntityID rootEnt : pRootChildren->children)
         {
             if (topEnt == rootEnt) continue;
             checkCollisionHelper(scene, rootEnt, ent, topEnt, rootEnt);
         }
     }
 
-    Children *pChildren = scene.Get<Children>(ent);
+    component::Children *pChildren = scene.Get<component::Children>(ent);
     if (pChildren == nullptr) return;
-    for (World::EntityID ent : pChildren->children)
+    for (EntityID ent : pChildren->children)
     {
         checkCollision(scene, ent, topEnt);
     }
 }
 
-void RigidbodySystem(World::Scene &scene, double dt)
+void RigidbodySystem(Scene &scene, double dt)
 {
-    for (World::EntityID ent : SceneView<Rigidbody, Transform>(scene))
+    for (EntityID ent : SceneView<component::Rigidbody, component::Transform>(scene))
     {
-        Rigidbody *pRigidbody = scene.Get<Rigidbody>(ent);
+        component::Rigidbody *pRigidbody = scene.Get<component::Rigidbody>(ent);
         if (pRigidbody->velocity.sqr_magnitude() > 0.001)
         {
-            Transform *pTransform = scene.DirtyGet<Transform>(ent);
+            component::Transform *pTransform = scene.DirtyGet<component::Transform>(ent);
             pTransform->pos = pTransform->pos + pRigidbody->velocity * dt;
         }
     }
 }
 
-void CollisionSystem(World::Scene &scene)
+void CollisionSystem(Scene &scene)
 {
     // Generate Collisions
-    for (World::EntityID ent : SceneView<ObjectToWorld, Rigidbody, Transform>(scene))
+    for (EntityID ent : SceneView<component::ObjectToWorld, component::Rigidbody, component::Transform>(scene))
     {
         checkCollision(scene, ent, ent);
     }
 
     // Resolve Collisions
-    for (World::EntityID ent : SceneView<Collision, Event>(scene, true))
+    for (EntityID ent : SceneView<component::Collision, component::Event>(scene, true))
     {
-        Collision *pCollision = scene.Get<Collision>(ent);
-        Transform *pTransform = scene.DirtyGet<Transform>(pCollision->source);
+        component::Collision *pCollision = scene.Get<component::Collision>(ent);
+        component::Transform *pTransform = scene.DirtyGet<component::Transform>(pCollision->source);
         pTransform->pos = pTransform->pos + pCollision->mtv;
     }
 }
 
-void EventSystem(World::Scene &scene)
+void EventSystem(Scene &scene)
 {
-    for (World::EntityID ent : SceneView<Event>(scene, true))
+    for (EntityID ent : SceneView<component::Event>(scene, true))
     {
         Utils::destroyEntity(scene, ent);
     }
 }
 
-void GroundDropSystem(World::Scene &scene, double elapsedTime)
+void GroundDropSystem(Scene &scene, double elapsedTime)
 {
-    for (World::EntityID ent : SceneView<GroundDrop>(scene))
+    for (EntityID ent : SceneView<component::GroundDrop>(scene))
     {
         double t = (sin(elapsedTime * 3) + 1) / 2;
-        Children *pChildren = scene.Get<Children>(ent);
-        Transform *pTransform = scene.DirtyGet<Transform>(pChildren->children[0]);
+        component::Children *pChildren = scene.Get<component::Children>(ent);
+        component::Transform *pTransform = scene.DirtyGet<component::Transform>(pChildren->children[0]);
         pTransform->scale = Vec2::lerp(Vec2(3.1, 3.1), Vec2(3.2, 3.2), t);
-        pTransform = scene.DirtyGet<Transform>(pChildren->children[1]);
+        pTransform = scene.DirtyGet<component::Transform>(pChildren->children[1]);
         pTransform->scale = Vec2::lerp(Vec2(2.5, 2.5), Vec2(2.3, 2.3), t);
-        pTransform = scene.DirtyGet<Transform>(pChildren->children[2]);
+        pTransform = scene.DirtyGet<component::Transform>(pChildren->children[2]);
         pTransform->scale = Vec2::lerp(Vec2(1.5, 1.5), Vec2(1.7, 1.7), t);
     }
 }
 
-void PlayerActionsSystem(World::Scene &scene)
+void PlayerActionsSystem(Scene &scene)
 {
     if (key_state.test(Action::forward) && !last_key_state.test(Action::forward))
     {
@@ -425,51 +425,51 @@ void PlayerActionsSystem(World::Scene &scene)
         bufferInsert<uint8_t>(outBuffer, Action::fire);
     }
 
-    for (World::EntityID cam : SceneView<Camera, ObjectToWorld>(scene, true))
+    for (EntityID cam : SceneView<component::Camera, component::ObjectToWorld>(scene, true))
     {
-        ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(cam);
+        component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(cam);
 
         double size = std::min(screen_size.x, screen_size.y);
         Vec2 world_pos = pObjectToWorld->matrix * ((mouse_pos - screen_size / 2) / size);
-        Transform *pTransform = scene.Get<Transform>(clientUser);
+        component::Transform *pTransform = scene.Get<component::Transform>(clientUser);
         bufferInsert<uint8_t>(outBuffer, Action::aim);
         bufferInsert<double>(outBuffer, (world_pos - pTransform->pos).get_angle());
     }
 }
 
-void DeathAnimatorSystem(World::Scene &scene, double dt)
+void DeathAnimatorSystem(Scene &scene, double dt)
 {
-    for (World::EntityID ent : SceneView<DeathAnimator>(scene))
+    for (EntityID ent : SceneView<component::DeathAnimator>(scene))
     {
-        Transform *pTransform = scene.DirtyGet<Transform>(ent);
+        component::Transform *pTransform = scene.DirtyGet<component::Transform>(ent);
         if (pTransform == nullptr) continue;
 
         pTransform->scale = Vec2::lerp(pTransform->scale, Vec2::zero(), Game::ANIMATION_SPEED * dt);
-        if (scene.Get<User>(ent) != nullptr) continue;
+        if (scene.Get<component::User>(ent) != nullptr) continue;
         if (pTransform->scale.sqr_magnitude() <= 0.01)
         {
 #ifdef SERVER
             Utils::destroyEntity(scene, ent);
 #endif
 #ifndef SERVER
-            if (World::IsClientEntity(ent))
+            if (IsClientEntity(ent))
                 Utils::destroyEntity(scene, ent);
 #endif
         }
     }
 }
 
-void HealthSystem(World::Scene &scene, double dt)
+void HealthSystem(Scene &scene, double dt)
 {
-    for (World::EntityID ent : SceneView<Health>(scene))
+    for (EntityID ent : SceneView<component::Health>(scene))
     {
-        Health *pHealth = scene.Get<Health>(ent);
-        Crate *pCrate = scene.Get<Crate>(ent);
+        component::Health *pHealth = scene.Get<component::Health>(ent);
+        component::Crate *pCrate = scene.Get<component::Crate>(ent);
 
         if (pCrate != nullptr)
         {
-            Children *pChildren = scene.Get<Children>(ent);
-            Color *pColor = scene.DirtyGet<Color>(pChildren->children.front());
+            component::Children *pChildren = scene.Get<component::Children>(ent);
+            component::Color *pColor = scene.DirtyGet<component::Color>(pChildren->children.front());
 
             double t = (double)pHealth->health / (double)pHealth->max_health;
 
@@ -478,11 +478,11 @@ void HealthSystem(World::Scene &scene, double dt)
             pColor->b = Utils::lerp(pColor->b, Utils::lerp(41, 249, t), Game::ANIMATION_SPEED * dt);
         }
 
-        User *pUser = scene.Get<User>(ent);
+        component::User *pUser = scene.Get<component::User>(ent);
         if (pUser != nullptr)
         {
-            Children *pChildren = scene.Get<Children>(ent);
-            Arc *pArc = scene.DirtyGet<Arc>(pChildren->children[2]);
+            component::Children *pChildren = scene.Get<component::Children>(ent);
+            component::Arc *pArc = scene.DirtyGet<component::Arc>(pChildren->children[2]);
 
             double t = (double)pHealth->health / (double)pHealth->max_health;
             pArc->start_angle = Utils::lerp(pArc->start_angle, Utils::lerp(3 * M_PI_2 * 0.95, M_PI_2 * 1.05, t), Game::ANIMATION_SPEED * dt);
@@ -491,52 +491,52 @@ void HealthSystem(World::Scene &scene, double dt)
     }
 }
 
-void CameraFollowSystem(World::Scene &scene)
+void CameraFollowSystem(Scene &scene)
 {
     const double MOVEMENT_SPEED = 10;
-    for (World::EntityID cam : SceneView<Camera, Transform>(scene, true))
+    for (EntityID cam : SceneView<component::Camera, component::Transform>(scene, true))
     {
-        Transform *pCamTransform = scene.DirtyGet<Transform>(cam);
+        component::Transform *pCamTransform = scene.DirtyGet<component::Transform>(cam);
 
-        Transform *pTransform = scene.Get<Transform>(clientUser);
+        component::Transform *pTransform = scene.Get<component::Transform>(clientUser);
         if (pTransform != nullptr)
             pCamTransform->pos = Vec2::lerp(pCamTransform->pos, pTransform->pos, 0.05);
     }
 }
 
-void DespawnSystem(World::Scene &scene, double dt)
+void DespawnSystem(Scene &scene, double dt)
 {
-    for (World::EntityID ent : SceneView<GroundDrop, Despawn>(scene))
+    for (EntityID ent : SceneView<component::GroundDrop, component::Despawn>(scene))
     {
-        Despawn *pDespawn = scene.DirtyGet<Despawn>(ent);
+        component::Despawn *pDespawn = scene.DirtyGet<component::Despawn>(ent);
 
         pDespawn->time_to_despawn -= dt;
         if (pDespawn->time_to_despawn <= 0)
         {
-            scene.Remove<GroundDrop>(ent);
-            scene.Assign<DeathAnimator>(ent, false);
+            scene.Remove<component::GroundDrop>(ent);
+            scene.Assign<component::DeathAnimator>(ent, false);
         }
     }
 }
 
-void BulletSystem(World::Scene &scene, double dt)
+void BulletSystem(Scene &scene, double dt)
 {
-    for (World::EntityID ent : SceneView<Event, Collision>(scene, true))
+    for (EntityID ent : SceneView<component::Event, component::Collision>(scene, true))
     {
-        Collision *pCollision = scene.Get<Collision>(ent);
+        component::Collision *pCollision = scene.Get<component::Collision>(ent);
 
-        Bullet *pBullet = scene.Get<Bullet>(pCollision->source);
+        component::Bullet *pBullet = scene.Get<component::Bullet>(pCollision->source);
         if (pBullet == nullptr) continue;
 
 #ifndef SERVER
-        Rigidbody *pRigidbody = scene.Get<Rigidbody>(pCollision->source);
+        component::Rigidbody *pRigidbody = scene.Get<component::Rigidbody>(pCollision->source);
         if (pRigidbody != nullptr) pRigidbody->velocity = Vec2(0, 0);
 
-        Transform *pTransform = scene.Get<Transform>(pCollision->source);
+        component::Transform *pTransform = scene.Get<component::Transform>(pCollision->source);
         if (pTransform != nullptr) pTransform->scale = Vec2(0, 0);
 #endif
 
-        Health *pHealth = scene.Get<Health>(pCollision->target);
+        component::Health *pHealth = scene.Get<component::Health>(pCollision->target);
 
         if (pHealth == nullptr)
         {
@@ -547,7 +547,7 @@ void BulletSystem(World::Scene &scene, double dt)
         }
 
         pHealth->health = std::max(pHealth->health - pBullet->damage, 0);
-        scene.DirtyGet<Health>(pCollision->target);
+        scene.DirtyGet<component::Health>(pCollision->target);
 
         if (pHealth->health > 0)
         {
@@ -558,15 +558,15 @@ void BulletSystem(World::Scene &scene, double dt)
         }
 
         // Hit player
-        if (scene.Get<User>(pCollision->target) != nullptr)
+        if (scene.Get<component::User>(pCollision->target) != nullptr)
         {
 #ifdef SERVER
-            Children *pChildren = scene.Get<Children>(pCollision->target);
-            scene.Remove<Collider>(pChildren->children[0]);
-            scene.Assign<DeathAnimator>(pCollision->target, false);
+            component::Children *pChildren = scene.Get<component::Children>(pCollision->target);
+            scene.Remove<component::Collider>(pChildren->children[0]);
+            scene.Assign<component::DeathAnimator>(pCollision->target, false);
 #endif
             std::cout << pBullet->owner << " Killed " << pCollision->target << std::endl;
-            User *pOwner = scene.DirtyGet<User>(pBullet->owner);
+            component::User *pOwner = scene.DirtyGet<component::User>(pBullet->owner);
 
             if (pOwner != nullptr)
             {
@@ -575,44 +575,44 @@ void BulletSystem(World::Scene &scene, double dt)
             }
         }
 
-        // Hit Crate
-        if (scene.Get<Crate>(pCollision->target) != nullptr)
+        // Hit component::Crate
+        if (scene.Get<component::Crate>(pCollision->target) != nullptr)
         {
 #ifdef SERVER
-            ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(pCollision->target);
-            World::EntityID drop = Prefabs::groundDropPrefab(scene, World::ROOT_ENTITY, pObjectToWorld->matrix.get_translation());
+            component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(pCollision->target);
+            EntityID drop = prefab::GroundDrop(scene, ROOT_ENTITY, pObjectToWorld->matrix.get_translation());
             Utils::setSiblingIndex(scene, drop, 0);
 
             int weapon = Utils::randInt(0, 2);
             switch (weapon)
             {
                 case 0:
-                    Prefabs::attachArPrefab(scene, drop);
+                    prefab::AssultRifle(scene, drop);
                     break;
                 case 1:
-                    Prefabs::attachSmgPrefab(scene, drop);
+                    prefab::Smg(scene, drop);
                     break;
                 case 2:
-                    Prefabs::attachSniperPrefab(scene, drop);
+                    prefab::Sniper(scene, drop);
                     break;
                 default:
                     break;
             }
 
-            Children *pChildren = scene.Get<Children>(pCollision->target);
-            scene.Remove<Crate>(pCollision->target);
-            scene.Remove<Collider>(pChildren->children[0]);
-            scene.Assign<DeathAnimator>(pCollision->target, false);
+            component::Children *pChildren = scene.Get<component::Children>(pCollision->target);
+            scene.Remove<component::Crate>(pCollision->target);
+            scene.Remove<component::Collider>(pChildren->children[0]);
+            scene.Assign<component::DeathAnimator>(pCollision->target, false);
 #endif
 
-            User *pOwner = scene.DirtyGet<User>(pBullet->owner);
+            component::User *pOwner = scene.DirtyGet<component::User>(pBullet->owner);
 
             if (pOwner != nullptr)
             {
                 pOwner->score += Game::CRATE_KILL_SCORE;
             }
 #ifdef SERVER
-            Game::spawnEntityRand(scene, World::ROOT_ENTITY, Game::Spawn::crate, 1);
+            Game::spawnEntityRand(scene, ROOT_ENTITY, Game::Spawn::crate, 1);
 #endif
         }
 #ifdef SERVER
@@ -621,40 +621,40 @@ void BulletSystem(World::Scene &scene, double dt)
     }
 
 #ifdef SERVER
-    for (World::EntityID ent : SceneView<Bullet>(scene))
+    for (EntityID ent : SceneView<component::Bullet>(scene))
     {
-        Bullet *pBullet = scene.Get<Bullet>(ent);
-        Transform *pTransform = scene.Get<Transform>(ent);
+        component::Bullet *pBullet = scene.Get<component::Bullet>(ent);
+        component::Transform *pTransform = scene.Get<component::Transform>(ent);
 
         if (pTransform->pos.sqr_dist(pBullet->startPos) > pBullet->maxDistance * pBullet->maxDistance)
         {
-            scene.Assign<DeathAnimator>(ent, false);
+            scene.Assign<component::DeathAnimator>(ent, false);
         }
     }
 
-    for (World::EntityID ent : SceneView<WeaponReload, Weapon>(scene))
+    for (EntityID ent : SceneView<component::WeaponReload, component::Weapon>(scene))
     {
-        Weapon *pWeapon = scene.Get<Weapon>(ent);
-        WeaponReload *pWeaponReload = scene.Get<WeaponReload>(ent);
+        component::Weapon *pWeapon = scene.Get<component::Weapon>(ent);
+        component::WeaponReload *pWeaponReload = scene.Get<component::WeaponReload>(ent);
         pWeaponReload->reload_elapsed_time += dt;
 
         if (pWeaponReload->reload_elapsed_time >= pWeapon->reload_time)
-            scene.Remove<WeaponReload>(ent);
+            scene.Remove<component::WeaponReload>(ent);
     }
 #endif
 }
 
-void ClientNetworkingSystem(World::Scene &scene)
+void ClientNetworkingSystem(Scene &scene)
 {
     int packetPos = 0;
 
-    World::EntityID newUser = INVALID_ENTITY;
+    EntityID newUser = INVALID_ENTITY;
     while (packetPos < inBuffer.size())
     {
-        World::EntityID ent = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
-        packetPos += sizeof(World::EntityID);
-        World::ComponentID comp = reinterpret_cast<World::ComponentID &>(inBuffer[packetPos]);
-        packetPos += sizeof(World::ComponentID);
+        EntityID ent = reinterpret_cast<EntityID &>(inBuffer[packetPos]);
+        packetPos += sizeof(EntityID);
+        ComponentID comp = reinterpret_cast<ComponentID &>(inBuffer[packetPos]);
+        packetPos += sizeof(ComponentID);
 
         NetworkOp op = static_cast<NetworkOp>(comp >> 30);
         comp = comp & ((1U << 30U) - 1U);
@@ -676,18 +676,18 @@ void ClientNetworkingSystem(World::Scene &scene)
                 }
                 else
                 {
-                    assignComponent(scene, ent, comp);
+                    component::assignComponent(scene, ent, comp);
                 }
                 break;
             }
             case NetworkOp::modify:
             {
-                if (comp == World::GetId<Polygon>())
+                if (comp == GetId<component::Polygon>())
                 {
                     int size = reinterpret_cast<int &>(inBuffer[packetPos]);
                     packetPos += sizeof(int);
 
-                    Polygon *pPolygon = scene.DirtyGet<Polygon>(ent);
+                    component::Polygon *pPolygon = scene.DirtyGet<component::Polygon>(ent);
 
                     pPolygon->verticies.resize(size);
 
@@ -698,29 +698,29 @@ void ClientNetworkingSystem(World::Scene &scene)
                     continue;
                 }
 
-                if (comp == World::GetId<Children>())
+                if (comp == GetId<component::Children>())
                 {
                     int size = reinterpret_cast<int &>(inBuffer[packetPos]);
                     packetPos += sizeof(int);
 
-                    Children *pChildren = scene.DirtyGet<Children>(ent);
+                    component::Children *pChildren = scene.DirtyGet<component::Children>(ent);
 
-                    std::vector<World::EntityID> clientEntities;
-                    for (World::EntityID child : pChildren->children)
+                    std::vector<EntityID> clientEntities;
+                    for (EntityID child : pChildren->children)
                     {
-                        if (World::IsClientEntity(child))
+                        if (IsClientEntity(child))
                             clientEntities.push_back(child);
                     }
 
                     pChildren->children.resize(size + clientEntities.size());
 
                     for (int i = 0; i < size; i++)
-                        pChildren->children[i] = reinterpret_cast<World::EntityID *>(&inBuffer[packetPos])[i];
+                        pChildren->children[i] = reinterpret_cast<EntityID *>(&inBuffer[packetPos])[i];
 
                     for (int i = 0; i < clientEntities.size(); i++)
                         pChildren->children[size + i] = clientEntities[i];
 
-                    packetPos += size * sizeof(World::EntityID);
+                    packetPos += size * sizeof(EntityID);
                     continue;
                 }
 
@@ -732,38 +732,38 @@ void ClientNetworkingSystem(World::Scene &scene)
 
                 for (int i = 0; i < compSize; i++) compData[i] = inBuffer[packetPos - compSize + i];
 
-                if (comp == World::GetId<User>())
+                if (comp == GetId<component::User>())
                 {
                     if (ent == clientUser)
                     {
-                        User *pUser = scene.Get<User>(ent);
+                        component::User *pUser = scene.Get<component::User>(ent);
 
                         EM_ASM({if (Module.onScoreChange) Module.onScoreChange($0); }, pUser->score);
                         EM_ASM({if (Module.onKillsChange) Module.onKillsChange($0); }, pUser->kills);
                     }
                 }
 
-                if (comp == World::GetId<Health>() && ent == clientUser)
+                if (comp == GetId<component::Health>() && ent == clientUser)
                 {
                     if (ent == clientUser)
                     {
-                        Health *pHealth = scene.Get<Health>(ent);
+                        component::Health *pHealth = scene.Get<component::Health>(ent);
 
                         EM_ASM({if (Module.onScoreChange) Module.onHealthChange($0); }, pHealth->health);
                         EM_ASM({if (Module.onKillsChange) Module.onMaxHealthChange($0); }, pHealth->max_health);
                     }
                 }
 
-                if (comp == World::GetId<Weapon>())
+                if (comp == GetId<component::Weapon>())
                 {
-                    Parent *pParent = scene.Get<Parent>(ent);
+                    component::Parent *pParent = scene.Get<component::Parent>(ent);
                     if (pParent == nullptr) break;
 
-                    pParent = scene.Get<Parent>(pParent->parent);
+                    pParent = scene.Get<component::Parent>(pParent->parent);
 
                     if (pParent != nullptr && pParent->parent == clientUser)
                     {
-                        Weapon *pWeapon = scene.Get<Weapon>(ent);
+                        component::Weapon *pWeapon = scene.Get<component::Weapon>(ent);
 
                         EM_ASM({if (Module.onAmmoChange) Module.onAmmoChange($0); }, pWeapon->ammo);
                         EM_ASM({if (Module.onMaxAmmoChange) Module.onMaxAmmoChange($0); }, pWeapon->max_ammo);
@@ -790,13 +790,13 @@ void ClientNetworkingSystem(World::Scene &scene)
     {
         if (clientUser == INVALID_ENTITY)
         {
-            // Camera
-            World::EntityID camera = scene.NewEntity(true);
+            // component::Camera
+            EntityID camera = scene.NewEntity(true);
 
-            Transform *pTransform = Utils::assignTransform(scene, camera);
+            component::Transform *pTransform = Utils::assignTransform(scene, camera);
             pTransform->scale = Vec2(30, 30);
 
-            scene.Assign<Camera>(camera);
+            scene.Assign<component::Camera>(camera);
         }
 
         clientUser = newUser;
@@ -808,38 +808,38 @@ void ClientNetworkingSystem(World::Scene &scene)
     outBuffer.clear();
 }
 
-void InsertComponentData(std::vector<uint8_t> &buffer, World::EntityID ent, World::ComponentID comp)
+void InsertComponentData(std::vector<uint8_t> &buffer, EntityID ent, ComponentID comp)
 {
     uint8_t *componentData = reinterpret_cast<uint8_t *>(scene.Get(ent, comp));
     if (componentData == nullptr) return;
 
-    bufferInsert<World::EntityID>(buffer, ent);
-    bufferInsert<World::ComponentID>(buffer, comp | (NetworkOp::modify << 30));
+    bufferInsert<EntityID>(buffer, ent);
+    bufferInsert<ComponentID>(buffer, comp | (NetworkOp::modify << 30));
 
-    if (comp == World::GetId<Polygon>())
+    if (comp == GetId<component::Polygon>())
     {
-        Polygon *pPolygon = scene.Get<Polygon>(ent);
+        component::Polygon *pPolygon = scene.Get<component::Polygon>(ent);
         bufferInsert<int>(buffer, pPolygon->verticies.size());
         for (int i = 0; i < pPolygon->verticies.size(); i++) bufferInsert<Vec2>(buffer, pPolygon->verticies[i]);
         return;
     }
 
-    if (comp == World::GetId<Children>())
+    if (comp == GetId<component::Children>())
     {
-        Children *pChildren = scene.Get<Children>(ent);
+        component::Children *pChildren = scene.Get<component::Children>(ent);
         bufferInsert<int>(buffer, pChildren->children.size());
-        for (int i = 0; i < pChildren->children.size(); i++) bufferInsert<World::EntityID>(buffer, pChildren->children[i]);
+        for (int i = 0; i < pChildren->children.size(); i++) bufferInsert<EntityID>(buffer, pChildren->children[i]);
         return;
     }
 
     for (int i = 0; i < scene.GetComponentSize(comp); i++) buffer.push_back(componentData[i]);
 }
 
-void ServerNetworkingSystem(World::Scene &scene)
+void ServerNetworkingSystem(Scene &scene)
 {
-    for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
+    for (ComponentID comp = 1; comp < component::MAX_COMPONENT + 1; comp++)
     {
-        for (World::EntityID ent : SceneView<>(scene))
+        for (EntityID ent : SceneView<>(scene))
         {
             if (scene.Get(ent, comp) == nullptr || !scene.IsDirty(ent, comp) || !scene.IsSendingUpdates(ent, comp)) continue;
 
@@ -848,26 +848,26 @@ void ServerNetworkingSystem(World::Scene &scene)
         }
     }
 
-    for (World::EntityID ent : SceneView<User>(scene))
+    for (EntityID ent : SceneView<component::User>(scene))
     {
-        reinterpret_cast<World::EntityID &>(outBuffer[0]) = ent;
+        reinterpret_cast<EntityID &>(outBuffer[0]) = ent;
         sendBuffer(outBuffer);
     }
 
     outBuffer.clear();
-    bufferInsert<World::EntityID>(outBuffer, INVALID_ENTITY);
+    bufferInsert<EntityID>(outBuffer, INVALID_ENTITY);
 
     // Handle client actions
     int packetPos = 0;
     while (packetPos < inBuffer.size())
     {
-        World::EntityID user = reinterpret_cast<World::EntityID &>(inBuffer[packetPos]);
-        packetPos += sizeof(World::EntityID);
+        EntityID user = reinterpret_cast<EntityID &>(inBuffer[packetPos]);
+        packetPos += sizeof(EntityID);
 
         uint32_t size = reinterpret_cast<uint32_t &>(inBuffer[packetPos]);
         packetPos += sizeof(uint32_t);
 
-        if (scene.Get<User>(user) == nullptr)
+        if (scene.Get<component::User>(user) == nullptr)
         {
             packetPos += size;
             size = 0;
@@ -880,64 +880,64 @@ void ServerNetworkingSystem(World::Scene &scene)
             {
                 case Action::forward:
                 {
-                    Rigidbody *pRigidbody = scene.DirtyGet<Rigidbody>(user);
+                    component::Rigidbody *pRigidbody = scene.DirtyGet<component::Rigidbody>(user);
                     if (pRigidbody == nullptr) break;
                     pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
                     break;
                 }
                 case Action::backward:
                 {
-                    Rigidbody *pRigidbody = scene.DirtyGet<Rigidbody>(user);
+                    component::Rigidbody *pRigidbody = scene.DirtyGet<component::Rigidbody>(user);
                     if (pRigidbody == nullptr) break;
                     pRigidbody->velocity.y = Utils::clamp(pRigidbody->velocity.y + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
                     break;
                 }
                 case Action::left:
                 {
-                    Rigidbody *pRigidbody = scene.DirtyGet<Rigidbody>(user);
+                    component::Rigidbody *pRigidbody = scene.DirtyGet<component::Rigidbody>(user);
                     if (pRigidbody == nullptr) break;
                     pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x - Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
                     break;
                 }
                 case Action::right:
                 {
-                    Rigidbody *pRigidbody = scene.DirtyGet<Rigidbody>(user);
+                    component::Rigidbody *pRigidbody = scene.DirtyGet<component::Rigidbody>(user);
                     if (pRigidbody == nullptr) break;
                     pRigidbody->velocity.x = Utils::clamp(pRigidbody->velocity.x + Game::MOVEMENT_SPEED, -Game::MOVEMENT_SPEED, Game::MOVEMENT_SPEED);
                     break;
                 }
                 case Action::interact:
                 {
-                    World::EntityID closest_drop = findClosestDrop(user);
+                    EntityID closest_drop = findClosestDrop(user);
                     if (closest_drop == INVALID_ENTITY) break;
                     pickupDrop(user, closest_drop);
                     break;
                 }
                 case Action::fire:
                 {
-                    World::EntityID weapon = getPlayerWeapon(user);
-                    if (scene.Get<WeaponReload>(weapon) == nullptr)
+                    EntityID weapon = getPlayerWeapon(user);
+                    if (scene.Get<component::WeaponReload>(weapon) == nullptr)
                     {
-                        Weapon *pWeapon = scene.Get<Weapon>(weapon);
+                        component::Weapon *pWeapon = scene.Get<component::Weapon>(weapon);
                         if (pWeapon->ammo == 0) break;
 
-                        Children *pChildren = scene.Get<Children>(weapon);
-                        ObjectToWorld *pObjectToWorld = scene.Get<ObjectToWorld>(pChildren->children.back());
+                        component::Children *pChildren = scene.Get<component::Children>(weapon);
+                        component::ObjectToWorld *pObjectToWorld = scene.Get<component::ObjectToWorld>(pChildren->children.back());
 
                         // Spawn bullet
                         double rotation = pObjectToWorld->matrix.get_rotation();
-                        World::EntityID bullet = Prefabs::spawnBulletPrefab(scene, World::ROOT_ENTITY, pObjectToWorld->matrix.get_translation(), rotation);
-                        Bullet *pBullet = scene.DirtyGet<Bullet>(bullet);
+                        EntityID bullet = prefab::Bullet(scene, ROOT_ENTITY, pObjectToWorld->matrix.get_translation(), rotation);
+                        component::Bullet *pBullet = scene.DirtyGet<component::Bullet>(bullet);
                         pBullet->owner = user;
                         pBullet->maxDistance = pWeapon->range;
                         pBullet->damage = pWeapon->damage;
 
-                        Rigidbody *pRigidbody = scene.DirtyGet<Rigidbody>(bullet);
+                        component::Rigidbody *pRigidbody = scene.DirtyGet<component::Rigidbody>(bullet);
                         pRigidbody->velocity = Vec2::from_angle(rotation) * pWeapon->bulletSpeed;
 
                         // Update weapon
-                        scene.Assign<WeaponReload>(weapon);
-                        scene.DirtyGet<Weapon>(weapon);
+                        scene.Assign<component::WeaponReload>(weapon);
+                        scene.DirtyGet<component::Weapon>(weapon);
                         pWeapon->ammo--;
                     }
                     break;
@@ -956,7 +956,7 @@ void ServerNetworkingSystem(World::Scene &scene)
                     packetPos += sizeof(double);
                     size -= sizeof(double);
 
-                    Transform *pTransform = scene.DirtyGet<Transform>(user);
+                    component::Transform *pTransform = scene.DirtyGet<component::Transform>(user);
                     if (pTransform == nullptr) break;
 
                     pTransform->rotation = forward;
@@ -1015,21 +1015,21 @@ uint32_t onPacket(int size)
 
 void onDisconnect(uint32_t index, uint32_t version)
 {
-    World::EntityID user = World::CreateEntityId(index, version);
+    EntityID user = CreateEntityId(index, version);
     std::cout << "Disconnected, UserId: " << user << std::endl;
 
-    if (scene.Get<User>(user) != nullptr)
+    if (scene.Get<component::User>(user) != nullptr)
     {
-        Children *pChildren = scene.Get<Children>(user);
-        scene.Remove<Collider>(pChildren->children[0]);
-        scene.Remove<User>(user);
-        scene.Assign<DeathAnimator>(user, false);
+        component::Children *pChildren = scene.Get<component::Children>(user);
+        scene.Remove<component::Collider>(pChildren->children[0]);
+        scene.Remove<component::User>(user);
+        scene.Assign<component::DeathAnimator>(user, false);
     }
 }
 
 uint32_t onUserConnect()
 {
-    World::EntityID *user = new World::EntityID;
+    EntityID *user = new EntityID;
     *user = Game::spawnPlayerRand(scene);
     std::cout << "Connected, UserId: " << *user << std::endl;
     return reinterpret_cast<uint32_t>(user);
@@ -1037,28 +1037,28 @@ uint32_t onUserConnect()
 
 void stateSync(uint32_t buffer)
 {
-    World::EntityID *user = reinterpret_cast<World::EntityID *>(buffer);
+    EntityID *user = reinterpret_cast<EntityID *>(buffer);
     std::cout << "Sync start, UserId: " << *user << std::endl;
 
     tempBuffer.clear();
-    bufferInsert<World::EntityID>(tempBuffer, *user);
-    bufferInsert<World::EntityID>(tempBuffer, *user);
-    bufferInsert<World::ComponentID>(tempBuffer, 0 | (NetworkOp::setUser << 30));
+    bufferInsert<EntityID>(tempBuffer, *user);
+    bufferInsert<EntityID>(tempBuffer, *user);
+    bufferInsert<ComponentID>(tempBuffer, 0 | (NetworkOp::setUser << 30));
 
-    for (World::EntityID ent : SceneView<>(scene))
+    for (EntityID ent : SceneView<>(scene))
     {
-        bufferInsert<World::EntityID>(tempBuffer, ent);
-        bufferInsert<World::ComponentID>(tempBuffer, 0 | (NetworkOp::create << 30));
+        bufferInsert<EntityID>(tempBuffer, ent);
+        bufferInsert<ComponentID>(tempBuffer, 0 | (NetworkOp::create << 30));
     }
 
-    for (World::ComponentID comp = 1; comp < MAX_COMPONENT + 1; comp++)
+    for (ComponentID comp = 1; comp < component::MAX_COMPONENT + 1; comp++)
     {
-        for (World::EntityID ent : SceneView<>(scene))
+        for (EntityID ent : SceneView<>(scene))
         {
             if (scene.Get(ent, comp) == nullptr) continue;
 
-            bufferInsert<World::EntityID>(tempBuffer, ent);
-            bufferInsert<World::ComponentID>(tempBuffer, comp | (NetworkOp::create << 30));
+            bufferInsert<EntityID>(tempBuffer, ent);
+            bufferInsert<ComponentID>(tempBuffer, comp | (NetworkOp::create << 30));
 
             if (scene.IsSendingUpdates(ent, comp))
                 InsertComponentData(tempBuffer, ent, comp);
@@ -1112,7 +1112,7 @@ void update(double dt)
 
     if (connected && clientUser != INVALID_ENTITY)
     {
-        if (scene.Get<Health>(clientUser)->health == 0 && !isDead)
+        if (scene.Get<component::Health>(clientUser)->health == 0 && !isDead)
         {
             std::cout << "Killed" << std::endl;
             isDead = true;
@@ -1123,7 +1123,7 @@ void update(double dt)
         ObjectToWorldSystem(scene);
         CollisionSystem(scene);
         ObjectToWorldSystem(scene);
-        // BulletSystem(scene, dt);
+        BulletSystem(scene, dt);
 
         if (!isDead)
         {
@@ -1184,7 +1184,7 @@ void start()
     if (!stopped) stop();
 
     // Reset
-    scene = World::Scene();
+    scene = Scene();
     elapsedTime = 0;
     key_state = {0};
     last_key_state = {0};
@@ -1232,9 +1232,9 @@ void start()
 
         Module.loop = window.requestAnimationFrame(update);
 
-        // SETUP WEBSOCKET
         console.log('Connecting ws://' + window.location.hostname + ':' + $0);
 
+        // Setup Websocket
         Module.socket = new WebSocket('ws://' + window.location.hostname + ':' + $0);
         Module.socket.binaryType = 'arraybuffer';
 
@@ -1257,7 +1257,7 @@ void start()
 #endif
 
 #ifdef SERVER
-    bufferInsert<World::EntityID>(outBuffer, INVALID_ENTITY);
+    bufferInsert<EntityID>(outBuffer, INVALID_ENTITY);
     EM_ASM({
         const Server = require('ws').Server;
         const process = require('process');
@@ -1340,12 +1340,12 @@ void start()
             5000);
     },
            PORT);
-    World::EntityID root = scene.NewEntity();
-    assert(root == World::ROOT_ENTITY);
+    EntityID root = scene.NewEntity();
+    assert(root == ROOT_ENTITY);
 
-    scene.Assign<Transform>(World::ROOT_ENTITY);
-    scene.Assign<ObjectToWorld>(World::ROOT_ENTITY, false);
-    scene.Assign<Children>(World::ROOT_ENTITY);
+    scene.Assign<component::Transform>(ROOT_ENTITY);
+    scene.Assign<component::ObjectToWorld>(ROOT_ENTITY, false);
+    scene.Assign<component::Children>(ROOT_ENTITY);
     Game::loadScene(scene);
 #endif
 }
@@ -1360,10 +1360,6 @@ int main(int argc, char *argv[])
 
 EMSCRIPTEN_BINDINGS(my_module)
 {
-    // value_array<Vec2>("Vec2")
-    //     .element(&Vec2::x)
-    //     .element(&Vec2::y);
-    // register_vector<Vec2>("vector<Vec2>");
     function("update", &update);
     function("onMouseDown", &onMouseDown);
     function("onMouseMove", &onMouseMove);

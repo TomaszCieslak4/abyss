@@ -40,22 +40,22 @@ Vec2 circle_axis(Vec2 pos, std::vector<Vec2> &verticies)
     return closest / sqrt(closest_dist);
 }
 
-bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &mtv)
+bool sat(Scene &scene, EntityID ent1, EntityID ent2, Vec2 &mtv)
 {
-    ObjectToWorld *pObjectToWorld1 = scene.Get<ObjectToWorld>(ent1);
-    ObjectToWorld *pObjectToWorld2 = scene.Get<ObjectToWorld>(ent2);
+    component::ObjectToWorld *pObjectToWorld1 = scene.Get<component::ObjectToWorld>(ent1);
+    component::ObjectToWorld *pObjectToWorld2 = scene.Get<component::ObjectToWorld>(ent2);
 
     std::vector<Vec2> verticies1;
     std::vector<Vec2> verticies2;
     std::vector<Vec2> axis;
 
-    if (scene.Get<Arc>(ent1) != nullptr)
+    if (scene.Get<component::Arc>(ent1) != nullptr)
     {
         verticies1.push_back(pObjectToWorld1->matrix.get_translation());
     }
     else
     {
-        Polygon *pPolygon = scene.Get<Polygon>(ent1);
+        component::Polygon *pPolygon = scene.Get<component::Polygon>(ent1);
 
         if (pPolygon != nullptr)
         {
@@ -67,13 +67,13 @@ bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &
         }
     }
 
-    if (scene.Get<Arc>(ent2) != nullptr)
+    if (scene.Get<component::Arc>(ent2) != nullptr)
     {
         verticies2.push_back(pObjectToWorld2->matrix.get_translation());
     }
     else
     {
-        Polygon *pPolygon = scene.Get<Polygon>(ent2);
+        component::Polygon *pPolygon = scene.Get<component::Polygon>(ent2);
 
         if (pPolygon != nullptr)
         {
@@ -85,10 +85,10 @@ bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &
         }
     }
 
-    if (scene.Get<Arc>(ent1) != nullptr)
+    if (scene.Get<component::Arc>(ent1) != nullptr)
         axis.push_back(circle_axis(pObjectToWorld1->matrix.get_translation(), verticies2));
 
-    if (scene.Get<Arc>(ent2) != nullptr)
+    if (scene.Get<component::Arc>(ent2) != nullptr)
         axis.push_back(circle_axis(pObjectToWorld2->matrix.get_translation(), verticies1));
 
     double min_overlap = INFINITY;
@@ -99,7 +99,7 @@ bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &
         double bmin = INFINITY;
         double bmax = -INFINITY;
 
-        if (scene.Get<Arc>(ent1) != nullptr)
+        if (scene.Get<component::Arc>(ent1) != nullptr)
         {
             double temp = verticies1[0].dot(axis[i]);
             amin = temp - pObjectToWorld1->matrix.get_scale().x / 2;
@@ -110,7 +110,7 @@ bool sat(World::Scene &scene, World::EntityID ent1, World::EntityID ent2, Vec2 &
             project_onto_axis(verticies1, axis[i], amin, amax);
         }
 
-        if (scene.Get<Arc>(ent2) != nullptr)
+        if (scene.Get<component::Arc>(ent2) != nullptr)
         {
             double temp = verticies2[0].dot(axis[i]);
             bmin = temp - pObjectToWorld2->matrix.get_scale().x / 2;
