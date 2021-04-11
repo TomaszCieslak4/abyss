@@ -135,6 +135,9 @@ class Profile extends Component<MyProp, MyState> {
   };
 
   render() {
+    if (!this.state.username) {
+      return <div />;
+    }
     return (
       <div className="gradborder">
         <form className="center-screen" onSubmit={this.handleSubmit}>

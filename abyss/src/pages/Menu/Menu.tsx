@@ -4,7 +4,6 @@ import { RouteComponentProps } from "react-router-dom";
 import { PORT } from "../../config";
 
 interface MyState {
-  gameState: string;
   errors: string[];
   topTen: any;
   highScore: string;
@@ -16,7 +15,6 @@ class Menu extends Component<MyProp, MyState> {
   constructor(props: MyProp) {
     super(props);
     this.state = {
-      gameState: "", //TODO: CHANGE GAME STATE DEPENDING ON WIN/LOSS/SIGNIN
       errors: [],
       topTen: [],
       highScore: "",
@@ -111,7 +109,6 @@ class Menu extends Component<MyProp, MyState> {
     return (
       <div className="gradborder">
         <form className="center-screen">
-          <h1>{this.state.gameState}</h1>
           <h2>My Highscores</h2>
           <table id="mystats">
             <tbody>

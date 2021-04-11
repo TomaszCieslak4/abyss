@@ -61,7 +61,7 @@ struct SceneView
                 // It's a valid entity ID
                 World::IsEntityIdValid((*entities)[index].id) &&
                 // It has the correct component mask
-                (all || mask == (mask & (*entities)[index].mask));
+                (all || mask == (mask & (*entities)[index].compMask));
         }
 
         Iterator &operator++()
@@ -84,7 +84,7 @@ struct SceneView
     {
         int firstIndex = 0;
         while (firstIndex < (*entities).size() &&
-               (componentMask != (componentMask & (*entities)[firstIndex].mask) || !World::IsEntityIdValid((*entities)[firstIndex].id)))
+               (componentMask != (componentMask & (*entities)[firstIndex].compMask) || !World::IsEntityIdValid((*entities)[firstIndex].id)))
         {
             firstIndex++;
         }

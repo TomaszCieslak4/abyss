@@ -77,6 +77,8 @@ struct Camera
 struct User
 {
     static constexpr World::ComponentID id = 12;
+    int score;
+    int kills;
 };
 
 struct HealthPack
@@ -104,12 +106,12 @@ struct Health
 struct Weapon
 {
     static constexpr World::ComponentID id = 17;
-    int damage;
-    int ammo;
-    int max_ammo;
-    double range;
-    double reload_time;
-    double reload_elapsed_time;
+    int damage = 10;
+    int ammo = 100;
+    int max_ammo = 100;
+    double range = 10;
+    double reload_time = 0.25;
+    double bulletSpeed = 100;
 };
 
 struct Bullet
@@ -166,12 +168,74 @@ struct Polygon
     std::vector<Vec2> verticies;
 };
 
+struct WeaponReload
+{
+    static constexpr World::ComponentID id = 26;
+    double reload_elapsed_time;
+};
+
 enum Shape
 {
     rectangle,
     triangle
 };
 
-constexpr int MAX_COMPONENT = Polygon::id;
+constexpr int MAX_COMPONENT = WeaponReload::id;
+
+void assignComponent(World::Scene &scene, World::EntityID ent, World::ComponentID comp)
+{
+    if (comp == World::GetId<Transform>())
+        scene.Assign<Transform>(ent);
+    else if (comp == World::GetId<ObjectToWorld>())
+        scene.Assign<ObjectToWorld>(ent);
+    else if (comp == World::GetId<Parent>())
+        scene.Assign<Parent>(ent);
+    else if (comp == World::GetId<Despawn>())
+        scene.Assign<Despawn>(ent);
+    else if (comp == World::GetId<Children>())
+        scene.Assign<Children>(ent);
+    else if (comp == World::GetId<Collider>())
+        scene.Assign<Collider>(ent);
+    else if (comp == World::GetId<Rigidbody>())
+        scene.Assign<Rigidbody>(ent);
+    else if (comp == World::GetId<Collision>())
+        scene.Assign<Collision>(ent);
+    else if (comp == World::GetId<GroundDrop>())
+        scene.Assign<GroundDrop>(ent);
+    else if (comp == World::GetId<Event>())
+        scene.Assign<Event>(ent);
+    else if (comp == World::GetId<Camera>())
+        scene.Assign<Camera>(ent);
+    else if (comp == World::GetId<User>())
+        scene.Assign<User>(ent);
+    else if (comp == World::GetId<HealthPack>())
+        scene.Assign<HealthPack>(ent);
+    else if (comp == World::GetId<AmmoPack>())
+        scene.Assign<AmmoPack>(ent);
+    else if (comp == World::GetId<DeathAnimator>())
+        scene.Assign<DeathAnimator>(ent);
+    else if (comp == World::GetId<Health>())
+        scene.Assign<Health>(ent);
+    else if (comp == World::GetId<Weapon>())
+        scene.Assign<Weapon>(ent);
+    else if (comp == World::GetId<Bullet>())
+        scene.Assign<Bullet>(ent);
+    else if (comp == World::GetId<AI>())
+        scene.Assign<AI>(ent);
+    else if (comp == World::GetId<Crate>())
+        scene.Assign<Crate>(ent);
+    else if (comp == World::GetId<Color>())
+        scene.Assign<Color>(ent);
+    else if (comp == World::GetId<Outline>())
+        scene.Assign<Outline>(ent);
+    else if (comp == World::GetId<Renderer>())
+        scene.Assign<Renderer>(ent);
+    else if (comp == World::GetId<Arc>())
+        scene.Assign<Arc>(ent);
+    else if (comp == World::GetId<Polygon>())
+        scene.Assign<Polygon>(ent);
+    else if (comp == World::GetId<WeaponReload>())
+        scene.Assign<WeaponReload>(ent);
+}
 
 #endif

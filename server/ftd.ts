@@ -208,15 +208,11 @@ app.put('/api/auth/updatepassword', async (req, res) => {
 });
 
 app.put('/api/auth/updatescore', async (req, res) => {
-    if (!req.headers.authorization)
-        return res.status(401).json({ error: 'No credentials sent!' });
+    if (!req.body.score)
+        return res.status(401).json({ error: 'No score sent!' });
     try {
-        let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
-        let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
-        m = /^(.*)$/.exec(user_pass);
-        let score = m ? m[1] : "";
-        console.log(score);
-        let newScore = Number(score);
+        let newScore = Number(req.body.score);
+        console.log(newScore);
         if (newScore === NaN || newScore < 0) {
             return res.status(404).json({ error: 'Score is invalid.' });
         }
@@ -267,7 +263,11 @@ app.post('/api/auth/test', function (req, res) {
 
 app.use('/', express.static('../abyss/build'));
 
+app.use(function (req, res, next) {
+    res.redirect("/");
+});
+
 app.listen(port, function () {
-    console.log('Example app listening on port ' + port);
+    console.log('App listening on port ' + port);
 });
 

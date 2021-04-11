@@ -85,7 +85,6 @@ export class Mat3 {
 
     inverse() {
         let scale = this.get_scale();
-        // TODO: Calculate static inverse
         return Mat3.create_scale(Vec2.one().div(scale))
             .mul(Mat3.create_rotation(-this.get_rotation()))
             .mul(Mat3.create_translation(this.get_translation().mul_s(-1)));

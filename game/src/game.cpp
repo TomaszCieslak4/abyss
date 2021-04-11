@@ -17,6 +17,9 @@ constexpr int COMBINED_SIZE = BOUNDRY_DEPTH + PLAY_RADIUS;
 constexpr int MIN_SPAWN_SEPERATION = 10;
 constexpr double MOVEMENT_SPEED = 10;
 constexpr double INTERACT_RANGE = 2.7;
+constexpr int PLAYER_KILL_SCORE = 50;
+constexpr int CRATE_KILL_SCORE = 10;
+constexpr int ANIMATION_SPEED = 10;
 
 enum Spawn
 {
@@ -51,20 +54,33 @@ void spawnEntityRand(World::Scene &scene, World::EntityID root, Spawn type, int 
         switch (type)
         {
             case Spawn::ammo:
-                Prefabs::spawnAmmoPackPrefab(scene, root, pos);
+            {
+                World::EntityID ent = Prefabs::spawnAmmoPackPrefab(scene, root, pos);
+                Utils::setSiblingIndex(scene, ent, 0);
                 break;
+            }
             case Spawn::health:
-                Prefabs::spawnHealthPackPrefab(scene, root, pos);
+            {
+                World::EntityID ent = Prefabs::spawnHealthPackPrefab(scene, root, pos);
+                Utils::setSiblingIndex(scene, ent, 0);
                 break;
+            }
             case Spawn::crate:
-                Prefabs::spawnCratePrefab(scene, root, pos);
+            {
+                World::EntityID ent = Prefabs::spawnCratePrefab(scene, root, pos);
+                Utils::setSiblingIndex(scene, ent, 0);
                 break;
+            }
             case Spawn::wall:
-                Prefabs::spawnWallPrefab(scene, root, pos);
+            {
+                World::EntityID ent = Prefabs::spawnWallPrefab(scene, root, pos);
+                Utils::setSiblingIndex(scene, ent, 0);
                 break;
-
+            }
             default:
+            {
                 break;
+            }
         }
 
         countInd++;
@@ -111,7 +127,7 @@ void loadScene(World::Scene &scene)
     std::array<int, 4> counts = {8, 8, 10, 5};
     for (int i = 0; i < counts.size(); i++)
         spawnEntityRand(scene, World::ROOT_ENTITY, (Spawn)i, counts[i]);
-} // namespace Game
+}
 
 } // namespace Game
 

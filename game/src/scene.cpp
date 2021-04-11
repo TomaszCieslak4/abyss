@@ -7,22 +7,25 @@
 #include <iostream>
 namespace World
 {
-constexpr int MAX_COMPONENTS = 32;
-constexpr int MAX_ENTITIES = 3000;
-constexpr int MAX_CLIENT_SIDE_ENTITIES = 100;
-
 typedef unsigned int EntityIndex;
 typedef unsigned int EntityVersion;
 typedef unsigned long long EntityID;
 typedef unsigned int ComponentID;
+
+constexpr int MAX_COMPONENTS = 32;
+constexpr int MAX_ENTITIES = 3000;
+constexpr int MAX_CLIENT_SIDE_ENTITIES = 100;
+constexpr EntityID ROOT_ENTITY = 0;
+
 typedef std::bitset<MAX_COMPONENTS> ComponentMask;
 
 #define INVALID_ENTITY World::CreateEntityId(World::EntityIndex(-1), 0)
 
-constexpr EntityID ROOT_ENTITY = 0;
-
 template <class T>
-constexpr World::ComponentID GetId() { return T::id; }
+constexpr World::ComponentID GetId()
+{
+    return T::id;
+}
 
 inline bool IsClientEntity(EntityID id) { return (id >> 32) >= MAX_ENTITIES; }
 inline EntityID CreateEntityId(EntityIndex index, EntityVersion version) { return ((EntityID)index << 32) | ((EntityID)version); }
@@ -55,7 +58,9 @@ struct Scene
     struct EntityDesc
     {
         EntityID id;
-        ComponentMask mask;
+        ComponentMask compMask;
+        ComponentMask dirtyMask;
+        ComponentMask updateMask;
     };
 
     std::vector<EntityDesc> networkedEntities;
@@ -69,7 +74,7 @@ struct Scene
     {
         std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
         ComponentID componentId = GetId<T>();
-        if (!(*entities)[GetEntityIndex(id)].mask.test(componentId)) return nullptr;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         T *pComponent = static_cast<T *>(componentPools[componentId]->get(GetEntityComponentIndex(id)));
         return pComponent;
     }
@@ -77,7 +82,7 @@ struct Scene
     void *Get(EntityID id, ComponentID componentId)
     {
         std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
-        if (!(*entities)[GetEntityIndex(id)].mask.test(componentId)) return nullptr;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
         return componentPools[componentId]->get(GetEntityComponentIndex(id));
     }
 
@@ -87,7 +92,7 @@ struct Scene
         std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if ((*entities)[GetEntityIndex(id)].id != id) return; // Deleted
         ComponentID componentId = GetId<T>();
-        (*entities)[GetEntityIndex(id)].mask.reset(componentId);
+        (*entities)[GetEntityIndex(id)].compMask.reset(componentId);
 
 #ifdef SERVER
         if (!World::IsClientEntity(id))
@@ -102,30 +107,94 @@ struct Scene
     {
         std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
         if ((*entities)[GetEntityIndex(id)].id != id) return; // Deleted
-        (*entities)[GetEntityIndex(id)].mask.reset(componentId);
+        (*entities)[GetEntityIndex(id)].compMask.reset(componentId);
     }
 
     template <typename T>
-    T *Assign(EntityID id)
+    void SetClean(EntityID id)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        ComponentID componentId = GetId<T>();
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return;
+        (*entities)[GetEntityIndex(id)].dirtyMask.reset(componentId);
+    }
+
+    void SetClean(EntityID id, ComponentID componentId)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return;
+        (*entities)[GetEntityIndex(id)].dirtyMask.reset(componentId);
+    }
+
+    template <typename T>
+    T *DirtyGet(EntityID id)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        ComponentID componentId = GetId<T>();
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
+        (*entities)[GetEntityIndex(id)].dirtyMask.set(componentId);
+        return static_cast<T *>(componentPools[componentId]->get(GetEntityComponentIndex(id)));
+    }
+
+    void *DirtyGet(EntityID id, ComponentID componentId)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return nullptr;
+        (*entities)[GetEntityIndex(id)].dirtyMask.set(componentId);
+        return componentPools[componentId]->get(GetEntityComponentIndex(id));
+    }
+
+    template <typename T>
+    bool IsDirty(EntityID id)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        ComponentID componentId = GetId<T>();
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
+        return (*entities)[GetEntityIndex(id)].dirtyMask.test(componentId);
+    }
+
+    bool IsDirty(EntityID id, ComponentID componentId)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
+        return (*entities)[GetEntityIndex(id)].dirtyMask.test(componentId);
+    }
+
+    template <typename T>
+    bool IsSendingUpdates(EntityID id)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        ComponentID componentId = GetId<T>();
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
+        return (*entities)[GetEntityIndex(id)].updateMask.test(componentId);
+    }
+
+    bool IsSendingUpdates(EntityID id, ComponentID componentId)
+    {
+        std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
+        if (!(*entities)[GetEntityIndex(id)].compMask.test(componentId)) return false;
+        return (*entities)[GetEntityIndex(id)].updateMask.test(componentId);
+    }
+
+    template <typename T>
+    void Assign(EntityID id, bool sendUpdates = true)
     {
         std::vector<EntityDesc> *entities = World::IsClientEntity(id) ? &clientEntities : &networkedEntities;
 
         ComponentID componentId = GetId<T>();
 
-        if (componentPools.size() <= componentId) // Not enough component pool
-        {
+        if (componentPools.size() <= componentId)
             componentPools.resize(componentId + 1, nullptr);
-        }
-        if (componentPools[componentId] == nullptr) // New component, make a new pool
-        {
-            componentPools[componentId] = new ComponentPool(sizeof(T));
-        }
 
-        // Looks up the component in the pool, and initializes it with placement new
+        if (componentPools[componentId] == nullptr)
+            componentPools[componentId] = new ComponentPool(sizeof(T));
+
         T *pComponent = new (componentPools[componentId]->get(GetEntityComponentIndex(id))) T();
 
-        // Set the bit for this component to true and return the created component
-        (*entities)[GetEntityIndex(id)].mask.set(componentId);
+        (*entities)[GetEntityIndex(id)].compMask.set(componentId);
+
+        if (sendUpdates)
+            (*entities)[GetEntityIndex(id)].updateMask.set(componentId);
 
 #ifdef SERVER
         if (!World::IsClientEntity(id))
@@ -134,8 +203,13 @@ struct Scene
             bufferInsert<ComponentID>(outBuffer, componentId | (NetworkOp::create << 30));
         }
 #endif
+    }
 
-        return pComponent;
+    template <typename T>
+    T *DirtyAssign(EntityID id, bool sendUpdates = true)
+    {
+        Assign<T>(id, sendUpdates);
+        return DirtyGet<T>(id);
     }
 
     size_t GetComponentSize(ComponentID componentId)
@@ -149,7 +223,9 @@ struct Scene
         std::vector<EntityIndex> *freeEntities = World::IsClientEntity(id) ? &freeClientEntities : &freeNetworkedEntities;
         EntityID newID = CreateEntityId(EntityIndex(-1), GetEntityVersion(id) + 1);
         (*entities)[GetEntityIndex(id)].id = newID;
-        (*entities)[GetEntityIndex(id)].mask.reset();
+        (*entities)[GetEntityIndex(id)].compMask.reset();
+        (*entities)[GetEntityIndex(id)].dirtyMask.reset();
+        (*entities)[GetEntityIndex(id)].updateMask.reset();
         (*freeEntities).push_back(GetEntityIndex(id));
 
 #ifdef SERVER

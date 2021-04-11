@@ -9,18 +9,20 @@
 
 body {
   /* background: #100E17; */
-  background: #000;
   color: #fff;
   font-size: 16px;
 }
 
 .center-screen {
   display: flex;
+  gap: 10px;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
   border: 2px solid #2c2c2c;
+  background: black;
+  padding: 10px;
 }
 
 h2 {
@@ -155,7 +157,7 @@ main .secondaryButton:focus {
   max-width: 450px;
   border-top: 2px solid #c4268c;
   border-radius: 3px;
-  background: #000;
+  background: #000000;
   position: relative;
   margin: auto;
 }
@@ -203,8 +205,20 @@ canvas {
   display: grid;
   grid-template-columns: 20px 100px 25px;
   grid-gap: 5px;
+  transition: all 0.25s;
 }
 
+.ui_endgame {
+  bottom: 50%;
+  left: 50%;
+  transform: translate(50%, 50%);
+}
+
+
+
+.ui_game p{
+  width: 140px;
+}
 .right {
   text-align: right;
 }

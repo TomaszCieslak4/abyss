@@ -20,37 +20,12 @@ World::EntityID spawnRectangle(World::Scene &scene, Vec2 pos, Vec2 scale, double
 
     Utils::assignShape(scene, rectangle, Shape::rectangle);
 
-    Color *pColor = scene.Assign<Color>(rectangle);
+    Color *pColor = scene.DirtyAssign<Color>(rectangle);
     *pColor = color;
 
     if (addCollider) scene.Assign<Collider>(rectangle);
 
     return rectangle;
-}
-
-World::EntityID attachSniperPrefab(World::Scene &scene, World::EntityID parent)
-{
-    World::EntityID gun = scene.NewEntity();
-    Utils::assignTransform(scene, gun, parent);
-    scene.Assign<Weapon>(gun);
-
-    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
-    spawnRectangle(scene, Vec2(0.85, 0), Vec2(0.15, 0.1), 0, gun, {249, 156, 35});
-    spawnRectangle(scene, Vec2(0, 0), Vec2(0.7, 0.15), 0, gun, {255, 255, 255});
-
-    return gun;
-}
-
-World::EntityID attachArPrefab(World::Scene &scene, World::EntityID parent)
-{
-    World::EntityID gun = scene.NewEntity();
-    Utils::assignTransform(scene, gun, parent);
-    scene.Assign<Weapon>(gun);
-
-    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
-    spawnRectangle(scene, Vec2(0.45, 0), Vec2(0.15, 0.2), 0, gun, {249, 156, 35});
-
-    return gun;
 }
 
 World::EntityID attachSmgPrefab(World::Scene &scene, World::EntityID parent)
@@ -62,6 +37,43 @@ World::EntityID attachSmgPrefab(World::Scene &scene, World::EntityID parent)
     spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.4), 0, gun, {255, 255, 255});
     spawnRectangle(scene, Vec2(0.47, 0), Vec2(0.4, 0.2), 0, gun, {249, 156, 35});
 
+    World::EntityID bulletSpawnpoint = scene.NewEntity();
+    Transform *pTransform = Utils::assignTransform(scene, bulletSpawnpoint, gun);
+    pTransform->pos = Vec2(0.1, 0);
+
+    return gun;
+}
+
+World::EntityID attachArPrefab(World::Scene &scene, World::EntityID parent)
+{
+    World::EntityID gun = scene.NewEntity();
+    Utils::assignTransform(scene, gun, parent);
+    scene.Assign<Weapon>(gun);
+
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.8, 0.3), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0.45, 0), Vec2(0.15, 0.2), 0, gun, {249, 156, 35});
+
+    World::EntityID bulletSpawnpoint = scene.NewEntity();
+    Transform *pTransform = Utils::assignTransform(scene, bulletSpawnpoint, gun);
+    pTransform->pos = Vec2(1, 0);
+
+    return gun;
+}
+
+World::EntityID attachSniperPrefab(World::Scene &scene, World::EntityID parent)
+{
+    World::EntityID gun = scene.NewEntity();
+    Utils::assignTransform(scene, gun, parent);
+    scene.Assign<Weapon>(gun);
+
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.5, 0.3), 0, gun, {255, 255, 255});
+    spawnRectangle(scene, Vec2(0.85, 0), Vec2(0.15, 0.1), 0, gun, {249, 156, 35});
+    spawnRectangle(scene, Vec2(0.45, 0), Vec2(0.7, 0.15), 0, gun, {255, 255, 255});
+
+    World::EntityID bulletSpawnpoint = scene.NewEntity();
+    Transform *pTransform = Utils::assignTransform(scene, bulletSpawnpoint, gun);
+    pTransform->pos = Vec2(1.5, 0);
+
     return gun;
 }
 
@@ -72,7 +84,7 @@ World::EntityID groundDropPrefab(World::Scene &scene, World::EntityID parent, Ve
     Transform *pTransform = Utils::assignTransform(scene, groundDrop, parent);
     pTransform->pos = pos;
 
-    scene.Assign<GroundDrop>(groundDrop);
+    scene.Assign<GroundDrop>(groundDrop, false);
 
     {
         World::EntityID ring = scene.NewEntity();
@@ -83,7 +95,7 @@ World::EntityID groundDropPrefab(World::Scene &scene, World::EntityID parent, Ve
         scene.Assign<Arc>(ring);
         scene.Assign<Renderer>(ring);
 
-        Color *pColor = scene.Assign<Color>(ring);
+        Color *pColor = scene.DirtyAssign<Color>(ring);
         *pColor = {57, 55, 62};
     }
     {
@@ -95,7 +107,7 @@ World::EntityID groundDropPrefab(World::Scene &scene, World::EntityID parent, Ve
         scene.Assign<Arc>(ring);
         scene.Assign<Renderer>(ring);
 
-        Color *pColor = scene.Assign<Color>(ring);
+        Color *pColor = scene.DirtyAssign<Color>(ring);
         *pColor = {91, 89, 95};
     }
     {
@@ -107,7 +119,7 @@ World::EntityID groundDropPrefab(World::Scene &scene, World::EntityID parent, Ve
         scene.Assign<Arc>(ring);
         scene.Assign<Renderer>(ring);
 
-        Color *pColor = scene.Assign<Color>(ring);
+        Color *pColor = scene.DirtyAssign<Color>(ring);
         *pColor = {119, 117, 122};
     }
 
@@ -146,7 +158,7 @@ World::EntityID spawnAmmoPackPrefab(World::Scene &scene, World::EntityID parent,
 
         Utils::assignShape(scene, ammoPackVisual, Shape::triangle);
 
-        Color *pColor = scene.Assign<Color>(ammoPackVisual);
+        Color *pColor = scene.DirtyAssign<Color>(ammoPackVisual);
         *pColor = {242, 249, 35};
     }
 
@@ -166,7 +178,22 @@ World::EntityID spawnCratePrefab(World::Scene &scene, World::EntityID parent, Ve
     double thickness = 0.05;
     Color outlineColor = {140, 140, 140};
 
-    World::EntityID visual = spawnRectangle(scene, Vec2(0, 0), Vec2(2, 2), 0, crate, {35, 142, 249}, true);
+    World::EntityID visual = scene.NewEntity();
+
+    // Visual
+    {
+        Transform *pTransform = Utils::assignTransform(scene, visual, crate);
+        pTransform->pos = Vec2(0, 0);
+        pTransform->scale = Vec2(3, 3);
+        pTransform->rotation = 0;
+
+        Utils::assignShape(scene, visual, Shape::rectangle);
+
+        Color *pColor = scene.DirtyAssign<Color>(visual, false);
+        *pColor = {35, 142, 249};
+        scene.Assign<Collider>(visual);
+    }
+
     spawnRectangle(scene, Vec2(0, 0.5 - thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
     spawnRectangle(scene, Vec2(0, -0.5 + thickness / 2), Vec2(1, thickness), 0, visual, outlineColor);
     spawnRectangle(scene, Vec2(0.5 - thickness / 2, 0), Vec2(thickness, 1), 0, visual, outlineColor);
@@ -192,11 +219,15 @@ World::EntityID spawnWallPrefab(World::Scene &scene, World::EntityID parent, Vec
 World::EntityID spawnBulletPrefab(World::Scene &scene, World::EntityID root, Vec2 pos, double rotation)
 {
     World::EntityID bullet = scene.NewEntity();
+    Bullet *pBullet = scene.DirtyAssign<Bullet>(bullet);
+    pBullet->startPos = pos;
+
+    scene.Assign<Rigidbody>(bullet);
 
     Transform *pTransform = Utils::assignTransform(scene, bullet, root);
     pTransform->pos = pos;
 
-    spawnRectangle(scene, Vec2(0, 0), Vec2(0.2, 0.4), rotation, bullet, {255, 255, 0}, true);
+    spawnRectangle(scene, Vec2(0, 0), Vec2(0.4, 0.2), rotation, bullet, {255, 255, 0}, true);
 
     return bullet;
 }
@@ -211,7 +242,7 @@ World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
 
         scene.Assign<User>(player);
         scene.Assign<Rigidbody>(player);
-        scene.Assign<Health>(player);
+        scene.DirtyAssign<Health>(player);
     }
 
     // Player Visual
@@ -226,7 +257,7 @@ World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
         scene.Assign<Renderer>(playerVisual);
         scene.Assign<Collider>(playerVisual);
 
-        Color *pColor = scene.Assign<Color>(playerVisual);
+        Color *pColor = scene.DirtyAssign<Color>(playerVisual);
         *pColor = {255, 255, 0};
     }
     // Health Visual Background
@@ -237,14 +268,14 @@ World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
         pTransform->pos = Vec2(0, 0);
         pTransform->scale = Vec2(2.3, 2.3);
 
-        Arc *pArc = scene.Assign<Arc>(healthVisual);
+        Arc *pArc = scene.DirtyAssign<Arc>(healthVisual);
         pArc->start_angle = M_PI_2 * 1.05;
         pArc->end_angle = 3 * M_PI_2 * 0.95;
 
         scene.Assign<Renderer>(healthVisual);
         scene.Assign<Outline>(healthVisual);
 
-        Color *pColor = scene.Assign<Color>(healthVisual);
+        Color *pColor = scene.DirtyAssign<Color>(healthVisual);
         *pColor = {255, 0, 0};
     }
     // Health Visual
@@ -255,14 +286,14 @@ World::EntityID spawnPlayerPrefab(World::Scene &scene, Vec2 pos)
         pTransform->pos = Vec2(0, 0);
         pTransform->scale = Vec2(2.3, 2.3);
 
-        Arc *pArc = scene.Assign<Arc>(healthVisual);
+        Arc *pArc = scene.DirtyAssign<Arc>(healthVisual, false);
         pArc->start_angle = M_PI_2 * 1.05;
         pArc->end_angle = 3 * M_PI_2 * 0.95;
 
         scene.Assign<Renderer>(healthVisual);
         scene.Assign<Outline>(healthVisual);
 
-        Color *pColor = scene.Assign<Color>(healthVisual);
+        Color *pColor = scene.DirtyAssign<Color>(healthVisual);
         *pColor = {0, 255, 0};
     }
     // Player Weapon Spawnpoint
