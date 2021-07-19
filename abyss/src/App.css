@@ -1,0 +1,330 @@
+* {
+  margin: 0;
+  padding: 0;
+  /* border-style: border-box; */
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+body {
+  /* background: #100E17; */
+  color: #fff;
+  font-size: 16px;
+}
+
+.center-screen {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 2px solid #2c2c2c;
+  background: black;
+  padding: 10px;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 500;
+  padding: 16px;
+}
+
+h3 {
+  font-size: 20px;
+  font-weight: 400;
+  padding: 16px;
+}
+
+.input-wrapper {
+  width: 90%;
+  text-align: left;
+}
+
+label {
+  font-size: 18px;
+  color: #eeeeee;
+}
+
+.textfield {
+  border-radius: 3px;
+  background: #2c2c2c;
+  width: 100%;
+  max-width: 450px;
+  font-size: 16px;
+}
+/* main input[type="text"],
+main input[type="password"] {
+	display: block;
+	width: 100%;
+	max-width: 450px;
+	font-size: 16px;
+	height: 50px;
+	padding: 3px 16px;
+	border: 2px solid #383838;
+	border-radius: 3px;
+	background: #2c2c2c;
+	color: #fff;
+	margin-bottom: 20px;
+	margin-top: 5px;
+} */
+
+#regPassword {
+  margin-bottom: 5px;
+}
+
+#regPasswordConfirm {
+  margin-bottom: 20px;
+}
+
+main input[type="text"]:focus,
+main input[type="password"]:focus {
+  outline: none;
+  border: 2px solid #335c90;
+}
+
+button {
+  height: 60px;
+  width: 100%;
+  max-width: 250px;
+  border: 2px solid #403e45;
+  background: red;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 10px 0px;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  transition: border 0.3s ease;
+}
+
+#err {
+  color: #ff6161;
+}
+
+#success {
+  color: #348831;
+}
+
+main .delete {
+  background: #ad2222;
+  color: #fff;
+}
+
+main .primaryButton:hover,
+main .primaryButton:focus {
+  outline: none;
+  border: 2px solid #5ca0f8;
+  cursor: pointer;
+}
+
+main .secondaryButton {
+  height: 50px;
+  width: 100%;
+  max-width: 250px;
+  color: #f9d423;
+  background: transparent;
+  font-size: 16px;
+  outline: none;
+  border: none;
+}
+
+main .secondaryButton:hover,
+main .secondaryButton:focus {
+  outline: none;
+  text-decoration: underline;
+  color: #f9d423;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tolabel {
+  vertical-align: middle;
+}
+
+.logo {
+  padding: 10px;
+  width: 150px;
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+}
+
+.gradborder {
+  height: 300px;
+  max-width: 450px;
+  border-top: 2px solid #c4268c;
+  border-radius: 3px;
+  background: #000000;
+  position: relative;
+  margin: auto;
+}
+
+.gradborder:before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to left, #f9d423, #f99c23);
+  top: -2px;
+  left: 0;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+
+.icon-space {
+  margin-top: 2px;
+}
+
+.ui_game {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  margin: 20px;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  /* background: #100e1705; */
+  background: rgba(255, 255, 255, 0.05);
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-columns: 20px 100px 25px;
+  grid-gap: 5px;
+  transition: all 0.25s;
+}
+
+.ui_endgame {
+  bottom: 50%;
+  left: 50%;
+  transform: translate(50%, 50%);
+}
+
+
+
+.ui_game p{
+  width: 140px;
+}
+.right {
+  text-align: right;
+}
+
+span {
+  display: block;
+  padding: 2px 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 90%;
+  margin: auto;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 2px solid #2c2c2c;
+}
+
+.middle {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* LAYOUT */
+.container {
+  display: grid;
+
+  grid-template-areas:
+    "header header header"
+    "nav content side"
+    "footer footer footer";
+
+  grid-template-columns: 200px 1fr 200px;
+  grid-template-rows: auto 1fr auto;
+  grid-gap: 10px;
+
+  height: 100vh;
+}
+
+.nonclick {
+  opacity: 0;
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+}
+
+header {
+  grid-area: header;
+  text-align: center;
+}
+
+nav {
+  grid-area: nav;
+  margin-left: 0.5rem;
+}
+
+main {
+  grid-area: content;
+}
+
+aside {
+  grid-area: side;
+  margin-right: 0.5rem;
+}
+
+footer {
+  grid-area: footer;
+  text-align: center;
+}
+
+footer p {
+  padding: 10px;
+  font-size: 14px;
+  color: #eeeeee;
+}
+
+@media (max-width: 768px) {
+  .container {
+    grid-template-areas:
+      "header"
+      "nav"
+      "content"
+      "side"
+      "footer";
+
+    grid-template-columns: 1fr;
+    grid-template-rows:
+      auto /* Header */
+      minmax(0, auto) /* Nav */
+      1fr /* Content */
+      minmax(0, auto) /* Sidebar */
+      auto; /* Footer */
+  }
+
+  nav,
+  aside {
+    margin: 0;
+  }
+
+  .center-screen {
+    border: none;
+  }
+}
