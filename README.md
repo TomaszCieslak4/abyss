@@ -41,7 +41,7 @@ Abyss is a multiplayer 2d shooter game that you can play with your friends! It i
 
 # Contributors
 
-This repository has multiple contributers that aided in the development of this online video editor.
+This repository has multiple contributers that aided in the development of this online video game.
 - Tomasz Cieslak
 - Julian de Rushe   
 
