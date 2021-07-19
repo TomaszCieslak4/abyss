@@ -1,12 +1,9 @@
-// https://www.freecodecamp.org/news/express-explained-with-examples-installation-routing-middleware-and-more/
-// https://medium.com/@viral_shah/express-middlewares-demystified-f0c2c37ea6a1
-// https://www.sohamkamani.com/blog/2018/05/30/understanding-how-expressjs-works/
-
 import express, { query } from "express";
 import { Pool } from "pg";
 
 const websocketServer = require("./game.js");
 
+// Configure this port for production
 const port = 8000;
 let app = express();
 
@@ -19,15 +16,17 @@ app.use(session({
     secret: 'secret-key',
 }));
 
+// Connect to a PSQL instance
 const pool = new Pool({
-    user: 'webdbuser',
-    host: 'localhost',
-    database: 'webdb',
+    user: 'user',
+    host: 'host',
+    database: 'database',
     password: 'password',
     port: 5432
 });
 
-const bodyParser = require('body-parser'); // we used this middleware to parse POST bodies
+// Middleware to parse POST bodies
+const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
 // Non authenticated route. Can visit this without credentials
@@ -130,10 +129,7 @@ app.post('/api/nouser/register', async (req, res) => {
 /** 
  * This is middleware to restrict access to subroutes of /api/auth/ 
  * To get past this middleware, all requests should be sent with appropriate
- * credentials. Now this is not secure, but this is a first step.
- *
- * Authorization: Basic YXJub2xkOnNwaWRlcm1hbg==
- * Authorization: Basic " + btoa("arnold:spiderman"); in javascript
+ * credentials.
 **/
 app.use('/api/auth', async (req, res, next) => {
     //@ts-ignore
