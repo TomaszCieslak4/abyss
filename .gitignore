@@ -1,3 +1,4 @@
 /server/node_modules/
 /website/node_modules/
 .vscode
+node_modules/
