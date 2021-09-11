@@ -80,7 +80,7 @@ class Login extends Component<MyProp, MyState> {
               onChange={this.handleChange}
               label="Username"
               type="text"
-              variant="outlined"
+              variant="filled"
               className="textfield"
             />
           </div>

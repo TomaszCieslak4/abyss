@@ -1,4 +1,4 @@
-# Abyss | [abyss-online.games](http://abyss-online.games/)
+# <img src="public/favicon.png"  width="25"/> Abyss | [abyss-online.games](http://abyss-online.games/)
 ## What is Abyss?
 Abyss is a multiplayer 2d shooter game that you can play with your friends! It includes different weapon types and items that replenish your health and ammo. Score points by eliminating enemies and crates to compete with other players on the highscore leaderboard. 
 

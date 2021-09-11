@@ -17,7 +17,6 @@ interface MyState {
   username: string;
   password: string;
   confirmPassword: string;
-  difficulty: string;
   checkbox: string;
   errors: string[];
   success: string[];
@@ -31,7 +30,6 @@ class Registration extends Component<MyProp, MyState> {
       username: "",
       password: "",
       confirmPassword: "",
-      difficulty: "",
       checkbox: "",
       errors: [],
       success: [],
@@ -54,36 +52,33 @@ class Registration extends Component<MyProp, MyState> {
     let errors: string[] = [];
     let success: string[] = [];
 
-    if (this.state.checkbox === "") {
-      errors.push("Please select the terms of service.");
-    }
     if (this.state.password !== this.state.confirmPassword) {
       errors.push("Passwords are not the same.");
-    }
-    if (
-      this.state.password.length < 8 ||
-      this.state.password.match(/^[a-zA-Z0-9]+$/) === null
-    ) {
-      errors.push(
-        "Passwords should be betweeen at least 8 characters or numbers."
-      );
-    }
-    if (
-      this.state.username.length < 3 ||
-      this.state.username.length > 20 ||
-      this.state.username.match(/^[a-zA-Z0-9]+$/) === null
-    ) {
-      errors.push("Username should be between 3-20 characters or numbers.");
-    }
-    if (this.state.difficulty === "") {
-      errors.push("Please select current skill level.");
     }
     if (this.state.username === "") {
       errors.push("Please enter a username.");
     }
-    if (this.state.password === "") {
-      errors.push("Please enter a password.");
-    }
+    else if (
+      this.state.username.length < 3 ||
+      this.state.username.length > 20 ||
+      this.state.username.match(/^[a-zA-Z0-9]+$/) === null
+      ) {
+        errors.push("Username should be between 3-20 characters or numbers.");
+      }
+      if (this.state.password === "") {
+        errors.push("Please enter a password.");
+      }
+      else if (
+        this.state.password.length < 8 ||
+        this.state.password.match(/^[a-zA-Z0-9]+$/) === null
+        ) {
+          errors.push(
+            "Passwords should be at least 8 characters or numbers."
+            );
+          }
+      if (this.state.checkbox === "") {
+        errors.push("Please accept the terms of service.");
+      }
     if (errors.length === 0) {
       const result = await fetch(`http://${window.location.hostname}:${PORT}/api/nouser/register`, {
         method: "POST",
@@ -93,9 +88,7 @@ class Registration extends Component<MyProp, MyState> {
             btoa(
               this.state.username +
               ":" +
-              this.state.password +
-              ":" +
-              this.state.difficulty
+              this.state.password
             ),
         },
       });
@@ -127,7 +120,7 @@ class Registration extends Component<MyProp, MyState> {
             <TextField
               name="username"
               onChange={this.handleChange}
-              label="Username"
+              label="New Username"
               type="text"
               variant="filled"
               className="textfield"
@@ -137,7 +130,7 @@ class Registration extends Component<MyProp, MyState> {
             <TextField
               name="password"
               onChange={this.handleChange}
-              label="Password"
+              label="New Password"
               type="password"
               autoComplete="current-password"
               variant="filled"
@@ -148,45 +141,16 @@ class Registration extends Component<MyProp, MyState> {
             <TextField
               name="confirmPassword"
               onChange={this.handleChange}
-              label="Confirm Password"
+              label="Confirm New Password"
               type="password"
               autoComplete="current-password"
               variant="filled"
               className="textfield"
             />
           </div>
-          <FormControl component="fieldset">
-            <FormLabel component="legend">What is you skill level?</FormLabel>
-            <RadioGroup row>
-              <FormControlLabel
-                name="difficulty"
-                labelPlacement="top"
-                value="noobie"
-                control={<Radio />}
-                label="Noobie"
-                onChange={this.handleChange}
-              />
-              <FormControlLabel
-                name="difficulty"
-                value="meh"
-                control={<Radio />}
-                label="Meh"
-                labelPlacement="top"
-                onChange={this.handleChange}
-              />
-              <FormControlLabel
-                name="difficulty"
-                labelPlacement="top"
-                value="pro"
-                control={<Radio />}
-                label="Pro"
-                onChange={this.handleChange}
-              />
-            </RadioGroup>
-          </FormControl>
           <FormControlLabel
             label="I will not cheat: "
-            labelPlacement="top"
+            labelPlacement="start"
             control={
               <Checkbox
                 name="checkbox"

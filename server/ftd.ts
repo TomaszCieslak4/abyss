@@ -99,22 +99,18 @@ app.post('/api/nouser/register', async (req, res) => {
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
-        m = /^(.*):(.*):(.*)$/.exec(user_pass); // probably should do better than this
+        m = /^(.*):(.*):(.*)$/.exec(user_pass);
         let username = m ? m[1] : "";
         let password = m ? m[2] : "";
-        let difficulty = m ? m[3] : "";
         if (password.length < 8 || password.match(/^[a-zA-Z0-9]+$/) === null) {
             return res.status(401).json({ error: 'Password should be betweeen at least 8 characters or numbers.' });
         }
         if (username.length < 3 || username.length > 20 || username.match(/^[a-zA-Z0-9]+$/) === null) {
             return res.status(401).json({ error: 'Username should be between 3-20 characters or numbers.' });
         }
-        if (difficulty === "") {
-            return res.status(401).json({ error: 'Please select current skill level.' });
-        }
         else {
-            let query = 'INSERT INTO ftduser (username, password, difficulty) VALUES ($1, sha512($2), $3)';
-            let result = await pool.query(query, [username, password, difficulty]);
+            let query = 'INSERT INTO ftduser (username, password) VALUES ($1, sha512($2), $3)';
+            let result = await pool.query(query, [username, password]);
             query = 'INSERT INTO scores (username, lastScore, highScore) VALUES ($1, 0, 0)';
             result = await pool.query(query, [username]);
         }

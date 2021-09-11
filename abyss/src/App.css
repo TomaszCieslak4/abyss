@@ -158,8 +158,12 @@ main .secondaryButton:focus {
   border-top: 2px solid #c4268c;
   border-radius: 3px;
   background: #000000;
-  position: relative;
+  position: absolute;
   margin: auto;
+  top: 0;
+  right: 0;
+  bottom: 300px;
+  left: 0;
 }
 
 .gradborder:before {
@@ -302,6 +306,9 @@ footer p {
 }
 
 @media (max-width: 768px) {
+  .gradborder {
+    position:relative;
+  }
   .container {
     grid-template-areas:
       "header"

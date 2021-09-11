@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const pg_1 = require("pg");
 const websocketServer = require("./game.js");
+// Configure this port for production
 const port = 8000;
 let app = express_1.default();
 var cors = require('cors');
@@ -23,7 +24,8 @@ const pool = new pg_1.Pool({
     password: 'password',
     port: 5432
 });
-const bodyParser = require('body-parser'); // we used this middleware to parse POST bodies
+// Middleware to parse POST bodies
+const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 // Non authenticated route. Can visit this without credentials
 app.post('/api/test', function (req, res) {
