@@ -1,5 +1,7 @@
 psql "dbname='dbname' user='user' password='password' host='host'" -f db/schema.sql
-cd server/
+cd abyss/
 npm install
-cd ../abyss/
+npm run build
+cd ../server/
 npm install
+npm run start
