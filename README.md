@@ -1,7 +1,13 @@
-# <img src="abyss/public/favicon.png"  width="25"/> Abyss | [abyss-online.games](http://abyss-online.games/)
+# <img src="abyss/public/favicon.png"  width="30"/> Abyss | [abyss-online.games](http://abyss-online.games/)
 ## What is Abyss?
 Abyss is a multiplayer 2d shooter game that you can play with your friends! It includes different weapon types and items that replenish your health and ammo. Score points by eliminating enemies and crates to compete with other players on the highscore leaderboard. 
 
+# How to install and run
+1) Make sure to configure the properties depending on the system you want to host this on. Do this by changing the port in `abyss/src/config.tsx` and `server/ftd.ts` to a port of your choice.
+2) Configure the database credentials in `server/ftd.ts` and `setup.sh1` to connect to a postgres relational database.
+4) Once you configure the application run `./setup.sh` to start the server. Enjoy!
+
+Note: You might have to remove cors from `server/ftd.ts` depending on your situation.
 # Controls
 ## Movement
 - Cursor - Facing position
