@@ -18,9 +18,9 @@ app.use(session({
 
 // Connect to a PSQL instance
 const pool = new Pool({
-    user: 'user',
-    host: 'host',
-    database: 'database',
+    user: 'webdbuser',
+    host: 'localhost',
+    database: 'webdb',
     password: 'password',
     port: 5432
 });
@@ -58,7 +58,6 @@ app.use('/api/nouser', async (req, res, next) => {
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
         let vals = user_pass.split(':');
         let username = vals ? vals[0] : "";
-        console.log(username);
         let query = 'SELECT * FROM ftduser WHERE username=$1';
         pool.query(query, [username], (err, pgRes) => {
             if (err) {
@@ -99,7 +98,7 @@ app.post('/api/nouser/register', async (req, res) => {
     try {
         let m = /^Basic\s+(.*)$/.exec(req.headers.authorization);
         let user_pass = Buffer.from(m ? m[1] : "", 'base64').toString();
-        m = /^(.*):(.*):(.*)$/.exec(user_pass);
+        m = /^(.*):(.*)$/.exec(user_pass);
         let username = m ? m[1] : "";
         let password = m ? m[2] : "";
         if (password.length < 8 || password.match(/^[a-zA-Z0-9]+$/) === null) {
@@ -109,7 +108,7 @@ app.post('/api/nouser/register', async (req, res) => {
             return res.status(401).json({ error: 'Username should be between 3-20 characters or numbers.' });
         }
         else {
-            let query = 'INSERT INTO ftduser (username, password) VALUES ($1, sha512($2), $3)';
+            let query = 'INSERT INTO ftduser (username, password) VALUES ($1, sha512($2))';
             let result = await pool.query(query, [username, password]);
             query = 'INSERT INTO scores (username, lastScore, highScore) VALUES ($1, 0, 0)';
             result = await pool.query(query, [username]);
@@ -143,7 +142,6 @@ app.use('/api/auth', async (req, res, next) => {
         let username = vals ? vals[0] : "";
         let password = vals ? vals[1] : "";
 
-        console.log(username + " " + password);
         let sql = 'SELECT * FROM ftduser WHERE username=$1 and password=sha512($2)';
         pool.query(sql, [username, password], (err, pgRes) => {
             if (err) {
@@ -205,7 +203,6 @@ app.put('/api/auth/updatescore', async (req, res) => {
         return res.status(401).json({ error: 'No score sent!' });
     try {
         let newScore = Number(req.body.score);
-        console.log(newScore);
         if (newScore === NaN || newScore < 0) {
             return res.status(404).json({ error: 'Score is invalid.' });
         }

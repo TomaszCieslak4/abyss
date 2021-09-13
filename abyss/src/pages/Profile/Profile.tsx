@@ -165,8 +165,8 @@ class Profile extends Component<MyProp, MyState> {
           <div className="input-wrapper"></div>
           <FormControl component="fieldset"></FormControl>
           <FormControlLabel
-            label="I confirm updating my account: (required)"
-            labelPlacement="top"
+            label="I confirm updating my account:"
+            labelPlacement="start"
             control={
               <Checkbox
                 value={this.state.checkbox === "" ? "checked" : ""}

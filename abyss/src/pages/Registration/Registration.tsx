@@ -95,6 +95,24 @@ class Registration extends Component<MyProp, MyState> {
       var body = await result.json();
       if (result.status === 200) {
         success.push(body.message);
+        const result = await fetch(
+          `http://${window.location.hostname}:${PORT}/api/auth/login`,
+          {
+            method: "POST",
+            headers: {
+              Authorization:
+                "Basic " + btoa(this.state.username + ":" + this.state.password),
+            },
+          }
+        );
+        var body = await result.json();
+        if (result.status === 200) {
+          localStorage.setItem("username", this.state.username);
+          //@ts-ignore
+          this.props.history.push("/menu");
+        } else {
+        errors.push(body.error);
+      }
       } else {
         errors.push(body.error);
       }

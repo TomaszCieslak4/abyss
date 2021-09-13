@@ -2,3 +2,4 @@
 /website/node_modules/
 .vscode
 node_modules/
+server/ftd.js
